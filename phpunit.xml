@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+PhpJsCalendar is the PHP implementation of rfc8984, A JSON Representation of Calendar Data
+
+This file is a part of PhpJsCalendar.
+
+@author    Kjell-Inge Gustafsson, kigkonsult <ical@kigkonsult.se>
+@copyright 2022 Kjell-Inge Gustafsson, kigkonsult, All rights reserved
+@link      https://kigkonsult.se
+@license   Subject matter of licence is the software PhpJsCalendar.
+           The above copyright, link, package and version notices,
+           this licence notice and the invariant [rfc5545] PRODID result use
+           as implemented and invoked in PhpJsCalendar shall be included in
+           all copies or substantial portions of the PhpJsCalendar.
+
+           PhpJsCalendar is free software: you can redistribute it and/or modify
+           it under the terms of the GNU Lesser General Public License as
+           published by the Free Software Foundation, either version 3 of
+           the License, or (at your option) any later version.
+
+           PhpJsCalendar is distributed in the hope that it will be useful,
+           but WITHOUT ANY WARRANTY; without even the implied warranty of
+           MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+           GNU Lesser General Public License for more details.
+
+           You should have received a copy of the GNU Lesser General Public License
+           along with PhpJsCalendar. If not, see <https://www.gnu.org/licenses/>.
+-->
+<phpunit backupGlobals="false"
+         backupStaticAttributes="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="true"
+         bootstrap="test/autoload.php"
+>
+    <testsuites>
+        <testsuite name="Factory, date and rfc parse Tests">
+            <file>./test/FactoryTest.php</file>
+            <file>./test/RfcParseTest.php</file>
+        </testsuite>
+        <testsuite name="Faker Tests etc">
+            <file>./test/FakerTest.php</file>
+            <file>./test/MiscTest.php</file>
+        </testsuite>
+        <testsuite name="iCal-json-iCal Tests">
+            <file>./test/IcalTest.php</file>
+        </testsuite>
+    </testsuites>
+    <coverage
+            includeUncoveredFiles="true"
+            processUncoveredFiles="true"
+            pathCoverage="false"
+            ignoreDeprecatedCodeUnits="false"
+            disableCodeCoverageIgnore="true">
+        <include>
+            <file>./src/BaseInterface.php</file>
+            <file>./src/Json.php</file>
+            <file>./src/PhpJsCalendar.php</file>
+            <file>./src/Dto/AbsoluteTrigger.php</file>
+            <file>./src/Dto/Alert.php</file>
+            <file>./src/Dto/BaseDto.php</file>
+            <file>./src/Dto/BaseEventTask.php</file>
+            <file>./src/Dto/BaseGroupEventTask.php</file>
+            <file>./src/Dto/DtoInterface.php</file>
+            <file>./src/Dto/Event.php</file>
+            <file>./src/Dto/Group.php</file>
+            <file>./src/Dto/Link.php</file>
+            <file>./src/Dto/Location.php</file>
+            <file>./src/Dto/NDay.php</file>
+            <file>./src/Dto/OffsetTrigger.php</file>
+            <file>./src/Dto/Participant.php</file>
+            <file>./src/Dto/PatchObject.php</file>
+            <file>./src/Dto/RecurrenceRule.php</file>
+            <file>./src/Dto/Relation.php</file>
+            <file>./src/Dto/Task.php</file>
+            <file>./src/Dto/TimeZone.php</file>
+            <file>./src/Dto/TimeZoneRule.php</file>
+            <file>./src/Dto/VirtualLocation.php</file>
+            <file>./src/Dto/Traits/DateInterval2StringTrait.php</file>
+            <file>./src/Dto/Traits/DescriptionTrait.php</file>
+            <file>./src/Dto/Traits/LinksTrait.php</file>
+            <file>./src/Dto/Traits/NameTrait.php</file>
+            <file>./src/Dto/Traits/PercentCompleteTrait.php</file>
+            <file>./src/Dto/Traits/ProgressTrait.php</file>
+            <file>./src/Dto/Traits/ProgressUpdatedTrait.php</file>
+            <file>./src/Dto/Traits/RecurrenceOverridesTrait.php</file>
+            <file>./src/Dto/Traits/RecurrenceRulesTrait.php</file>
+            <file>./src/Dto/Traits/RelatedToTrait.php</file>
+            <file>./src/Dto/Traits/RelativeToTrait.php</file>
+            <file>./src/Dto/Traits/ReplayToSendToHelpTrait.php</file>
+            <file>./src/Dto/Traits/SentByTrait.php</file>
+            <file>./src/Dto/Traits/StartTrait.php</file>
+            <file>./src/Dto/Traits/TimeZoneTrait.php</file>
+            <file>./src/Dto/Traits/TitleTrait.php</file>
+            <file>./src/Dto/Traits/UpdatedTrait.php</file>
+            <file>./src/Ical/Alert.php</file>
+            <file>./src/Ical/BaseConvert.php</file>
+            <file>./src/Ical/BaseEventTask.php</file>
+            <file>./src/Ical/BaseGroupEventTask.php</file>
+            <file>./src/Ical/ConvertInterface.php</file>
+            <file>./src/Ical/Event.php</file>
+            <file>./src/Ical/Group.php</file>
+            <file>./src/Ical/Link.php</file>
+            <file>./src/Ical/Location.php</file>
+            <file>./src/Ical/Participant.php</file>
+            <file>./src/Ical/PatchObject.php</file>
+            <file>./src/Ical/RecurrenceRule.php</file>
+            <file>./src/Ical/Relation.php</file>
+            <file>./src/Ical/Task.php</file>
+            <file>./src/Ical/TimeZone.php</file>
+            <file>./src/Ical/TimeZoneRule.php</file>
+            <file>./src/Ical/VirtualLocation.php</file>
+            <file>./src/Json/AbsoluteTrigger.php</file>
+            <file>./src/Json/Alert.php</file>
+            <file>./src/Json/BaseEventTask.php</file>
+            <file>./src/Json/BaseGroupEventTask.php</file>
+            <file>./src/Json/BaseJson.php</file>
+            <file>./src/Json/Event.php</file>
+            <file>./src/Json/Group.php</file>
+            <file>./src/Json/JsonInterface.php</file>
+            <file>./src/Json/Link.php</file>
+            <file>./src/Json/Location.php</file>
+            <file>./src/Json/NDay.php</file>
+            <file>./src/Json/OffsetTrigger.php</file>
+            <file>./src/Json/Participant.php</file>
+            <file>./src/Json/PatchObject.php</file>
+            <file>./src/Json/RecurrenceRule.php</file>
+            <file>./src/Json/Relation.php</file>
+            <file>./src/Json/Task.php</file>
+            <file>./src/Json/TimeZone.php</file>
+            <file>./src/Json/TimeZoneRule.php</file>
+            <file>./src/Json/UnknownTrigger.php</file>
+            <file>./src/Json/VirtualLocation.php</file>
+        </include>
+        <!-- Require the PHP Xdebug (2.7.0 or later) and tokenizer extensions-->
+        <!-- Remove or comment after your own choice-->
+        <!-- Note, all output in report/logging will be saved in 'testDocs' folder -->
+        <report>
+            <!-- clover outputFile="testDocs/clover.xml"/ -->
+            <!-- crap4j outputFile="testDocs/crap4j.xml" threshold="50"/ -->
+            <html outputDirectory="testDocs/PHPUnitCoverage" lowUpperBound="60" highLowerBound="80"/>
+            <php outputFile="testDocs/coverage.php"/>
+            <text outputFile="testDocs/coverage.txt" showUncoveredFiles="false" showOnlySummary="false"/>
+            <!-- xml outputDirectory="testDocs/xml-coverage"/ -->
+        </report>
+    </coverage>
+    <logging>
+        <!-- Remove or comment after your own choice-->
+        <!-- All logs will be saved in 'testDocs' folder -->
+
+        <!-- junit outputFile="testDocs/junit.xml"/ -->
+        <!-- teamcity outputFile="testDocs/teamcity.txt"/ -->
+        <!-- testdoxHtml outputFile="testDocs/testdox.html"/ -->
+        <!-- testdoxText outputFile="testDocs/testdox.txt"/ -->
+        <!-- testdoxXml outputFile="testDocs/testdox.xml"/ -->
+        <text outputFile="testDocs/logfile.txt"/>
+    </logging>
+</phpunit>
