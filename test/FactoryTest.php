@@ -271,7 +271,19 @@ class FactoryTest extends TestCase
         }
         $this->assertTrue(
             $ok,
-            'Error case #53'
+            'Error case #53a'
+        );
+
+        $ok = false;
+        try {
+            PhpJsCalendar::factory()->iCalParse( Vcalendar::factory()->setLastmodified());
+        }
+        catch( RuntimeException $re ) {
+            $ok = true;
+        }
+        $this->assertTrue(
+            $ok,
+            'Error case #53b'
         );
 
         $ok = false;

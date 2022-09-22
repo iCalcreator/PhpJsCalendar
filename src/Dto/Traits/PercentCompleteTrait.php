@@ -61,11 +61,12 @@ trait PercentCompleteTrait
     }
 
     /**
-     * @param null|int $percentComplete
+     * @param int $percentComplete
      * @return static
      */
-    public function setPercentComplete( ? int $percentComplete ) : static
+    public function setPercentComplete( int $percentComplete ) : static
     {
+        self::assertUnsignedInt( $percentComplete, self::PERCENTCOMPLETE );
         $this->percentComplete = $percentComplete;
         return $this;
     }

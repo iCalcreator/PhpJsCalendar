@@ -30,22 +30,26 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Daylight;
-use Kigkonsult\Icalcreator\Standard;
-use Kigkonsult\Icalcreator\Vcalendar;
+use Kigkonsult\Icalcreator\CalendarComponent  as IcalComponent;
+use Kigkonsult\Icalcreator\Daylight           as IcalDaylight;
+use Kigkonsult\Icalcreator\Standard           as IcalStandard;
+use Kigkonsult\Icalcreator\Vcalendar          as IcalVcalendar;
 use Kigkonsult\PhpJsCalendar\Dto\PatchObject  as PatchObjectDto;
 use Kigkonsult\PhpJsCalendar\Dto\TimeZoneRule as TimeZoneRuleDto;
 
 class TimeZoneRule extends BaseIcal
 {
     /**
-     * Ical TimeZoneRule Dto properties to iCal Standard/Daylight
+     * TimeZoneRule Dto properties to iCal Standard/Daylight
      *
      * @param TimeZoneRuleDto $timeZoneRuleDto
-     * @param Standard|Daylight $timezoneSub
+     * @param IcalStandard|IcalDaylight $timezoneSub
      * @throws Exception
      */
-    public static function processTo( TimeZoneRuleDto $timeZoneRuleDto, Standard|Daylight $timezoneSub ) : void
+    public static function processToIcal(
+        TimeZoneRuleDto $timeZoneRuleDto,
+        IcalStandard|IcalDaylight $timezoneSub
+    ) : void
     {
         if( $timeZoneRuleDto->isStartSet()) {
             $timezoneSub->setDtstart( $timeZoneRuleDto->getStart());
@@ -62,7 +66,7 @@ class TimeZoneRule extends BaseIcal
         // array of "RecurrenceRule[]"  opt until is in UTC
         if( ! empty( $timeZoneRuleDto->getRecurrenceRulesCount())) {
             foreach( $timeZoneRuleDto->getRecurrenceRules() as $recurrenceRule ) {
-                $timezoneSub->setRrule( RecurrenceRule::processTo( $recurrenceRule ));
+                $timezoneSub->setRrule( RecurrenceRule::processToIcalRecur( $recurrenceRule ));
             }
         }
 
@@ -91,45 +95,51 @@ class TimeZoneRule extends BaseIcal
     /**
      * Ical iCal Standard/Daylight to TimezoneRule
      *
-     * @param Standard|Daylight $component
+     * @param IcalComponent|IcalStandard|IcalDaylight $iCalComp
      * @return TimeZoneRuleDto
      * @throws Exception
      */
-    public static function processFrom( Standard|Daylight $component ) : TimeZoneRuleDto
+    public static function processFromIcal(
+        IcalComponent|IcalStandard|IcalDaylight $iCalComp
+    ) : TimeZoneRuleDto
     {
         $timeZoneRuleDto = new TimeZoneRuleDto();
 
-        if( $component->isDtstartSet()) {
-            $timeZoneRuleDto->setStart( $component->getDtstart());
+        if( $iCalComp->isDtstartSet()) {
+            $timeZoneRuleDto->setStart( $iCalComp->getDtstart());
         }
 
-        if( $component->isTzoffsetFromSet()) {
-            $timeZoneRuleDto->setOffsetfrom( $component->getTzoffsetFrom());
+        if( $iCalComp->isTzoffsetFromSet()) {
+            $timeZoneRuleDto->setOffsetfrom( $iCalComp->getTzoffsetFrom());
         }
 
-        if( $component->isTzoffsetToSet()) {
-            $timeZoneRuleDto->setOffsetto( $component->getTzoffsetTo());
+        if( $iCalComp->isTzoffsetToSet()) {
+            $timeZoneRuleDto->setOffsetto( $iCalComp->getTzoffsetTo());
         }
 
-        if( $component->isRRuleSet()) {
-            $timeZoneRuleDto->addRecurrenceRule( RecurrenceRule::processFrom( $component->getRRule()));
+        if( $iCalComp->isRRuleSet()) {
+            $timeZoneRuleDto->addRecurrenceRule(
+                RecurrenceRule::processFromIcalRecur( $iCalComp->getRRule())
+            );
         }
 
         // array of "LocalDateTime[PatchObject]" - ignore Rdate period and PatchObject
-        while( false !== ( $value = $component->getRdate( null, true ))) {
-            if( ! $value->hasParamKey( Vcalendar::VALUE ) ||
-                ( Vcalendar::PERIOD !== $value->getParams( Vcalendar::VALUE ))) {
-                $timeZoneRuleDto->addRecurrenceOverride( $value->value[0], new PatchObjectDto() );
+        foreach( $iCalComp->getAllRdate( true ) as $rDatePc ) {
+            if( ! $rDatePc->hasParamKey( IcalVcalendar::VALUE, IcalVcalendar::PERIOD )) {
+                $timeZoneRuleDto->addRecurrenceOverride(
+                    $rDatePc->getValue()[0],
+                    new PatchObjectDto()
+                );
             }
         }
 
         // array of "String[Boolean]"
-        while( false !== ( $value = $component->getTzname())) {
+        foreach( $iCalComp->getAllTzname() as $value ) {
             $timeZoneRuleDto->addName( $value );
         }
 
         // array of "String[]"
-        while( false !== ( $value = $component->getComment())) {
+        foreach( $iCalComp->getAllComment() as $value ) {
             $timeZoneRuleDto->addComment( $value );
         }
 

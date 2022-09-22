@@ -72,7 +72,7 @@ class Link extends BaseJson
      *
      * @param string $lid
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( string $lid, Dto $dto ) : array
     {
@@ -95,6 +95,7 @@ class Link extends BaseJson
         if( $dto->isSizeSet()) {
             $jsonArray[self::SIZE] = $dto->getSize();
         }
+
         if( $dto->isRelSet()) {
             $jsonArray[self::REL] = $dto->getRel();
         }

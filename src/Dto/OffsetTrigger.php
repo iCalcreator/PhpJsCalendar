@@ -48,7 +48,7 @@ final class OffsetTrigger extends BaseDto
      *
      * "start":  triggers the alert relative to the start of the calendar object
      *  "end":   triggers the alert relative to the end/due time of the calendar object
-     * Optional default: "start"
+     * Optional, default: "start"
      */
     use RelativeToTrait;
 
@@ -73,7 +73,7 @@ final class OffsetTrigger extends BaseDto
      * @return static
      * @throws Exception
      */
-    public static function factoryOffset( DateInterval $offset ) : static
+    public static function factoryOffset( DateInterval $offset ) : OffsetTrigger
     {
         return ( new self())->setOffset( $offset );
     }
@@ -104,7 +104,7 @@ final class OffsetTrigger extends BaseDto
      * @return static
      * @throws Exception
      */
-    public function setOffset( string|DateInterval $offset ) : static
+    public function setOffset( string|DateInterval $offset ) : OffsetTrigger
     {
         $this->offset = $offset instanceof DateInterval
             ? $offset

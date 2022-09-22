@@ -110,7 +110,7 @@ class FakerTest extends TestCase
 
         $jsonString1 = $phpJsCalendar1->getJsonString();
 
-//         echo $jsonString1 . PHP_EOL; // test ###
+//         error_log( $jsonString1 ); // test ###
 
         $phpJsCalendar2 = PhpJsCalendar::factoryJsonParse( $jsonString1 );
         $this->assertSame(
@@ -167,7 +167,7 @@ class FakerTest extends TestCase
 
         $phpJsCalendar->iCalWrite();
 
-//    echo $phpJsCalendar->getVcalendar()->createCalendar() . PHP_EOL; // test ###
+//      error_log( $phpJsCalendar->getVcalendar()->createCalendar()); // test ###
 
         $jsonString2 = $phpJsCalendar
             ->iCalParse()

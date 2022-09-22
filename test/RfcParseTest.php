@@ -285,14 +285,14 @@ class RfcParseTest extends TestCase
     ],
     "recurrenceOverrides": {
         "2020-03-04T09:00:00": {
-            "participants/dG9tQGZvb2Jhci5xlLmNvbQ/participationStatus": "declined"
+            "participants/dg9tqgzvb2jhci5xilmnvbq/participationStatus": "declined"
         }
     },
     "replyTo": {
         "imip": "mailto:f245f875-7f63-4a5e-a2c8@schedule.example.com"
     },
     "participants": {
-        "dG9tQGZvb2Jhci5xlLmNvbQ": {
+        "dg9tqgzvb2jhci5xilmnvbq": {
             "@type": "Participant",
             "name": "Tom Tool",
             "email": "tom@foobar.example.com",
@@ -304,7 +304,7 @@ class RfcParseTest extends TestCase
             },
             "participationStatus": "accepted"
         },
-        "em9lQGZvb2GFtcGxlLmNvbQ": {
+        "em9iqgzvb2gftcgxilmnvbq": {
             "@type": "Participant",
             "name": "Zoe Zelda",
             "email": "zoe@foobar.example.com",
@@ -342,14 +342,14 @@ class RfcParseTest extends TestCase
 
         $dto           = $phpJsCalendar->jsonParse()->getDto();
 
-//      echo 'Dto : ' . var_export( $dto, true ) . PHP_EOL; // test ###
+//      error_log( 'Dto : ' . var_export( $dto, true )); // test ###
 
         $jsonString2   = $phpJsCalendar->jsonWrite( $dto, true )->getJsonString();
 
         $jsonString3 = str_replace(
             [
-                '            "prodId": "Kigkonsult.se PhpJsCalendar 0.9",' . PHP_EOL,
-                '    "prodId": "Kigkonsult.se PhpJsCalendar 0.9",' . PHP_EOL,
+                '            "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
+                '    "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
             ],
             '',
             $jsonString2
@@ -361,9 +361,8 @@ class RfcParseTest extends TestCase
             'diff error in #1-' . $case . '-1'
         );
 
-//      echo 'case ' . $case . PHP_EOL . $jsonString3; // test ###
+//      error_log( 'case ' . $case . PHP_EOL . $jsonString3 ); // test ###
     }
-
 
     /**
      * Same as above BUT json string parse, convert to iCal, convert from ical, json string write
@@ -381,11 +380,11 @@ class RfcParseTest extends TestCase
 
         $dto           = $phpJsCalendar->jsonParse()->getDto();
 
-//      echo 'Dto : ' . var_export( $dto, true ) . PHP_EOL; // test ###
+//      error_log( 'Dto : ' . var_export( $dto, true )); // test ###
 
         $vcalendar     = $phpJsCalendar->iCalWrite()->getVcalendar();
 
-//      echo 'case: ' . $case . PHP_EOL . $vcalendar->createCalendar() . PHP_EOL; // test ###
+//      error_log( 'case: ' . $case . PHP_EOL . $vcalendar->createCalendar()); // test ###
 
         $dto2          = $phpJsCalendar->iCalParse()->getDto();
 
@@ -393,20 +392,20 @@ class RfcParseTest extends TestCase
 
         $jsonString3 = str_replace(
             [
-                '            "prodId": "Kigkonsult.se PhpJsCalendar 0.9",' . PHP_EOL,
-                '    "prodId": "Kigkonsult.se PhpJsCalendar 0.9",' . PHP_EOL,
+                '            "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
+                '    "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
             ],
             '',
             $jsonString2
         );
 
-//      echo PHP_EOL . $vcalendar->createCalendar() . PHP_EOL; // test ###
+//      error_log( $vcalendar->createCalendar()); // test ###
 
         $this->assertSame(
             $jsonString,
             $jsonString3,
             'diff error in #2-' . $case . '-1'
         );
-//      echo $jsonString3 . PHP_EOL; // test ###
+//      error_log( $jsonString3 ); // test ###
     }
 }

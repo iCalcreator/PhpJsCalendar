@@ -205,7 +205,7 @@ final class RecurrenceRule extends BaseDto
      * @param string $frequency
      * @return static
      */
-    public function setFrequency( string $frequency ) : static
+    public function setFrequency( string $frequency ) : RecurrenceRule
     {
         $this->frequency = strtolower( $frequency );
         return $this;
@@ -236,8 +236,9 @@ final class RecurrenceRule extends BaseDto
      * @param int $interval
      * @return static
      */
-    public function setInterval( int $interval ) : static
+    public function setInterval( int $interval ) : RecurrenceRule
     {
+        self::assertUnsignedInt( $interval, self::INTERVAL );
         $this->interval = $interval;
         return $this;
     }
@@ -267,7 +268,7 @@ final class RecurrenceRule extends BaseDto
      * @param string $rscale
      * @return static
      */
-    public function setRscale( string $rscale ) : static
+    public function setRscale( string $rscale ) : RecurrenceRule
     {
         $this->rscale = strtolower( $rscale );
         return $this;
@@ -300,7 +301,7 @@ final class RecurrenceRule extends BaseDto
      * @param string $skip
      * @return static
      */
-    public function setSkip( string $skip ) : static
+    public function setSkip( string $skip ) : RecurrenceRule
     {
         $this->skip = strtolower( $skip );
         return $this;
@@ -331,7 +332,7 @@ final class RecurrenceRule extends BaseDto
      * @param string $firstDayOfWeek
      * @return static
      */
-    public function setFirstDayOfWeek( string $firstDayOfWeek ) : static
+    public function setFirstDayOfWeek( string $firstDayOfWeek ) : RecurrenceRule
     {
         $this->firstDayOfWeek = strtolower( $firstDayOfWeek );
         return $this;
@@ -357,7 +358,7 @@ final class RecurrenceRule extends BaseDto
      * @param NDay $byDay
      * @return static
      */
-    public function addByDay( NDay $byDay ) : static
+    public function addByDay( NDay $byDay ) : RecurrenceRule
     {
         $this->byDay[] = $byDay;
         return $this;
@@ -367,7 +368,7 @@ final class RecurrenceRule extends BaseDto
      * @param NDay[] $byDay
      * @return static
      */
-    public function setByDay( array $byDay ) : static
+    public function setByDay( array $byDay ) : RecurrenceRule
     {
         foreach( $byDay as $theDay ) {
             $this->addByDay( $theDay );
@@ -395,7 +396,7 @@ final class RecurrenceRule extends BaseDto
      * @param int|string $byMonth
      * @return static
      */
-    public function addByMonth( int|string $byMonth ) : static
+    public function addByMonth( int|string $byMonth ) : RecurrenceRule
     {
         $this->byMonth[] = (string) $byMonth;
         return $this;
@@ -405,7 +406,7 @@ final class RecurrenceRule extends BaseDto
      * @param array $byMonth
      * @return static
      */
-    public function setByMonth( array $byMonth ) : static
+    public function setByMonth( array $byMonth ) : RecurrenceRule
     {
         foreach( $byMonth as $theMonth ) {
             $this->addByMonth( $theMonth );
@@ -433,7 +434,7 @@ final class RecurrenceRule extends BaseDto
      * @param int $byMonthDay
      * @return static
      */
-    public function addByMonthDay( int $byMonthDay ) : static
+    public function addByMonthDay( int $byMonthDay ) : RecurrenceRule
     {
         $this->byMonthDay[] = $byMonthDay;
         return $this;
@@ -443,7 +444,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $byMonthDay
      * @return static
      */
-    public function setByMonthDay( array $byMonthDay ) : static
+    public function setByMonthDay( array $byMonthDay ) : RecurrenceRule
     {
         foreach( $byMonthDay as $theMonthDay) {
             $this->addByMonthDay( $theMonthDay );
@@ -471,7 +472,7 @@ final class RecurrenceRule extends BaseDto
      * @param int $byYearDay
      * @return static
      */
-    public function addByYearDay( int $byYearDay ) : static
+    public function addByYearDay( int $byYearDay ) : RecurrenceRule
     {
         $this->byYearDay[] = $byYearDay;
         return $this;
@@ -481,7 +482,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $byYearDay
      * @return static
      */
-    public function setByYearDay( array $byYearDay ) : static
+    public function setByYearDay( array $byYearDay ) : RecurrenceRule
     {
         foreach( $byYearDay as $theYearDay ) {
             $this->addByYearDay( $theYearDay );
@@ -509,7 +510,7 @@ final class RecurrenceRule extends BaseDto
      * @param int $byWeekNo
      * @return static
      */
-    public function addByWeekNo( int $byWeekNo ) : static
+    public function addByWeekNo( int $byWeekNo ) : RecurrenceRule
     {
         $this->byWeekNo[] = $byWeekNo;
         return $this;
@@ -519,7 +520,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $byWeekNo
      * @return static
      */
-    public function setByWeekNo( array $byWeekNo ) : static
+    public function setByWeekNo( array $byWeekNo ) : RecurrenceRule
     {
         foreach( $byWeekNo as $theWeekNo ) {
             $this->addByWeekNo( $theWeekNo );
@@ -547,8 +548,9 @@ final class RecurrenceRule extends BaseDto
      * @param int $byHour
      * @return static
      */
-    public function addByHour( int $byHour ) : static
+    public function addByHour( int $byHour ) : RecurrenceRule
     {
+        self::assertUnsignedInt( $byHour, self::BYHOUR );
         $this->byHour[] = $byHour;
         return $this;
     }
@@ -557,7 +559,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $byHour
      * @return static
      */
-    public function setByHour( array $byHour ) : static
+    public function setByHour( array $byHour ) : RecurrenceRule
     {
         foreach( $byHour as $theHour ) {
             $this->addByHour( $theHour );
@@ -585,8 +587,9 @@ final class RecurrenceRule extends BaseDto
      * @param int $byMinute
      * @return static
      */
-    public function addByMinute( int $byMinute ) : static
+    public function addByMinute( int $byMinute ) : RecurrenceRule
     {
+        self::assertUnsignedInt( $byMinute, self::BYMINUTE );
         $this->byMinute[] = $byMinute;
         return $this;
     }
@@ -595,7 +598,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $byMinute
      * @return static
      */
-    public function setByMinute( array $byMinute ) : static
+    public function setByMinute( array $byMinute ) : RecurrenceRule
     {
         foreach( $byMinute as $theMinute ) {
             $this->addByMinute( $theMinute );
@@ -623,8 +626,9 @@ final class RecurrenceRule extends BaseDto
      * @param int $bySecond
      * @return static
      */
-    public function addBySecond( int $bySecond ) : static
+    public function addBySecond( int $bySecond ) : RecurrenceRule
     {
+        self::assertUnsignedInt( $bySecond, self::BYSECOND );
         $this->bySecond[] = $bySecond;
         return $this;
     }
@@ -633,7 +637,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $bySecond
      * @return static
      */
-    public function setBySecond( array $bySecond ) : static
+    public function setBySecond( array $bySecond ) : RecurrenceRule
     {
         foreach( $bySecond as $theSecond ) {
             $this->addBySecond( $theSecond );
@@ -661,7 +665,7 @@ final class RecurrenceRule extends BaseDto
      * @param int $bySetPosition
      * @return static
      */
-    public function addBySetPosition( int $bySetPosition ) : static
+    public function addBySetPosition( int $bySetPosition ) : RecurrenceRule
     {
         $this->bySetPosition[] = $bySetPosition;
         return $this;
@@ -671,7 +675,7 @@ final class RecurrenceRule extends BaseDto
      * @param int[] $bySetPosition
      * @return static
      */
-    public function setBySetPosition( array $bySetPosition ) : static
+    public function setBySetPosition( array $bySetPosition ) : RecurrenceRule
     {
         foreach( $bySetPosition as $theSetPosition ) {
             $this->addBySetPosition( $theSetPosition );
@@ -698,11 +702,12 @@ final class RecurrenceRule extends BaseDto
     }
 
     /**
-     * @param int|null $count
+     * @param int $count
      * @return static
      */
-    public function setCount( ?int $count ) : static
+    public function setCount( int $count ) : RecurrenceRule
     {
+        self::assertUnsignedInt( $count, self::COUNT );
         $this->count = $count;
         return $this;
     }
@@ -733,7 +738,7 @@ final class RecurrenceRule extends BaseDto
      * @return static
      * @throws Exception
      */
-    public function setUntil( null|string|DateTimeInterface $until ) : static
+    public function setUntil( null|string|DateTimeInterface $until ) : RecurrenceRule
     {
         $this->until = self::toUtcDateTime( $until ?? new DateTime());
         return $this;

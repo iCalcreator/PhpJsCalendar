@@ -30,7 +30,7 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\DtoLoad;
 
 use Faker;
-use Kigkonsult\FakerLocRelTypes\Provider\en_US\LocationTypes;
+use Kigkonsult\FakerLocRelTypes\Provider\en_US\Rfc4589LocationTypes;
 use Kigkonsult\PhpJsCalendar\Dto\Location as Dto;
 
 class Location extends BaseDtoLad
@@ -43,12 +43,12 @@ class Location extends BaseDtoLad
     public static function load() : Dto
     {
         $faker = Faker\Factory::create();
-        $faker->addProvider( new LocationTypes( $faker ));
+        $faker->addProvider( new Rfc4589LocationTypes( $faker ));
 
         $locationTypes = [];
         $max   = $faker->randomElement( [ 3, 4 ] );
         for( $x = 0; $x < $max; $x++ ) {
-            $locType = $faker->locationType();
+            $locType = $faker->rfc4589LocationType();
             $locationTypes[$locType] = $locType;
         }
 
@@ -63,7 +63,9 @@ class Location extends BaseDtoLad
 
         $dto->setRelativeTo( $faker->randomElement( [ 'start', 'end' ] ));
 
-        $dto->setTimeZone( $faker->timezone());
+        if( 1 === $faker->randomElement( [ 1, 2 ] )) {
+            $dto->setTimeZone( $faker->timezone() );
+        }
 
         if( 1 === $faker->randomElement( [ 1, 2 ] )) {
             $dto->setCoordinates(

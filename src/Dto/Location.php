@@ -47,7 +47,7 @@ final class Location extends BaseDto
      * The set is represented as a map, with the keys being the location types.
      * The value for each key in the map MUST be true.
      *
-     * @var mixed[]  String[Boolean]
+     * @var array  String[Boolean]
      */
     private array $locationTypes = [];
 
@@ -99,7 +99,7 @@ final class Location extends BaseDto
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getLocationTypes() : array
     {
@@ -119,7 +119,7 @@ final class Location extends BaseDto
      * @param null|bool $bool default true
      * @return static
      */
-    public function addLocationType( string $locationType, ? bool $bool = true ) : static
+    public function addLocationType( string $locationType, ? bool $bool = true ) : Location
     {
         $this->locationTypes[$locationType] = $bool;
         return $this;
@@ -129,10 +129,10 @@ final class Location extends BaseDto
      * @param array $locationTypes  String[Boolean] or String[]
      * @return static
      */
-    public function setLocationTypes( array $locationTypes ) : static
+    public function setLocationTypes( array $locationTypes ) : Location
     {
         foreach( $locationTypes as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addLocationType( $key, $value );
             }
             else {
@@ -161,10 +161,10 @@ final class Location extends BaseDto
     }
 
     /**
-     * @param null|string $coordinates
+     * @param string $coordinates
      * @return static
      */
-    public function setCoordinates( ? string $coordinates ) : static
+    public function setCoordinates( string $coordinates ) : Location
     {
         $this->coordinates = $coordinates;
         return $this;
@@ -175,11 +175,11 @@ final class Location extends BaseDto
      * @param float $longitude
      * @return $this
      */
-    public function setLatLongCoordinates( float $latitude, float $longitude ) : static
+    public function setLatLongCoordinates( float $latitude, float $longitude ) : Location
     {
         static $GEO        = 'geo:';
-        static $geoLatFmt  = '%09.6f';
-        static $geoLongFmt = ',%8.6f';
+        static $geoLatFmt  = '%s%09.6f';
+        static $geoLongFmt = ',%s%8.6f';
         $this->coordinates = $GEO .
             self::geo2str2( $latitude, $geoLatFmt ) .
             self::geo2str2( $longitude, $geoLongFmt );
@@ -205,10 +205,10 @@ final class Location extends BaseDto
     }
 
     /**
-     * @param null|string $timeZone
+     * @param string $timeZone
      * @return static
      */
-    public function setTimeZone( ? string $timeZone ) : static
+    public function setTimeZone( string $timeZone ) : Location
     {
         $this->timeZone = $timeZone;
         return $this;
@@ -227,14 +227,13 @@ final class Location extends BaseDto
     {
         static $PLUS  = '+';
         static $MINUS = '-';
-        static $SP0   = '';
         static $ZERO  = '0';
         static $DOT   = '.';
         $sign = match ( true ) {
             ( 0.0 < $ll ) => $PLUS,
             ( 0.0 > $ll ) => $MINUS,
-            default       => $SP0,
+            default       => self::$SP0,
         };
-        return rtrim( rtrim( $sign . sprintf( $format, abs( $ll )), $ZERO ), $DOT );
+        return rtrim( rtrim( sprintf( $format, $sign, abs( $ll )), $ZERO ), $DOT );
     }
 }

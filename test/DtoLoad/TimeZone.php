@@ -43,17 +43,17 @@ class TimeZone extends BaseDtoLad
     public static function load( string $timezoneName ) : Dto
     {
         $faker = Faker\Factory::create();
-        $dto = new Dto();
+        $dto   = new Dto();
         $dto->setTzId( $timezoneName );
         $dto->setUpdated( $faker->dateTime( 'now', 'UTC' ));
-        $dto->setUrl( $faker->url() );
+        $dto->setUrl( $faker->url());
         $dto->setValidUntil( $faker->dateTimeBetween( '1 month', '6 month' ));
         for( $x = 0; $x < 2; $x++ ) {
             $dto->addAlias( ucfirst( $faker->word ));
         }
         $startDt = $faker->dateTimeBetween( '-2 year', '-1 year' );
         $dto->addStandard( TimeZoneRule::load( $startDt->modify( '+2 month' )));
-        $dto->addDaylight( TimeZoneRule::load( $startDt->modify( '+2 month' )));
+        $dto->addDaylight( TimeZoneRule::load( $startDt->modify( '+6 month' )));
         return $dto;
     }
 }

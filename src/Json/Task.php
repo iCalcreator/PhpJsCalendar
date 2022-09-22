@@ -61,7 +61,7 @@ class Task extends BaseEventTask
             }
         }
         if( isset( $jsonArray[self::PERCENTCOMPLETE] )) {
-            $dto->setPercentComplete( $jsonArray[self::PERCENTCOMPLETE] );
+            $dto->setPercentComplete((int) $jsonArray[self::PERCENTCOMPLETE] );
         }
         return $dto;
     }
@@ -72,7 +72,7 @@ class Task extends BaseEventTask
      * Ordered as in rfc8984
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

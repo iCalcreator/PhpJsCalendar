@@ -57,10 +57,10 @@ trait NameTrait
     }
 
     /**
-     * @param null|string $name
+     * @param string $name
      * @return static
      */
-    public function setName( ? string $name ) : static
+    public function setName( string $name ) : static
     {
         $this->name = $name;
         return $this;

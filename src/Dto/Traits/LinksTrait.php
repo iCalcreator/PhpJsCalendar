@@ -38,12 +38,12 @@ trait LinksTrait
      *
      * Id type : 1-255 chars, "A-Za-z0-9", "-", "_" only
      *
-     * @var mixed[]  Id[Link]
+     * @var array  Id[Link]
      */
     protected array $links = [];
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getLinks() : array
     {

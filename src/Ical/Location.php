@@ -30,10 +30,10 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
+use Kigkonsult\Icalcreator\CalendarComponent as IcalComponent;
 use Kigkonsult\Icalcreator\Pc;
-use Kigkonsult\Icalcreator\Util\StringFactory;
-use Kigkonsult\Icalcreator\Vlocation;
-use Kigkonsult\PhpJsCalendar\Dto\Location as LocationDto;
+use Kigkonsult\Icalcreator\Vlocation         as IcalVlocation;
+use Kigkonsult\PhpJsCalendar\Dto\Location    as LocationDto;
 
 class Location extends BaseIcal
 {
@@ -53,16 +53,20 @@ class Location extends BaseIcal
      * @param int|string $id
      * @param LocationDto $locationDto
      * @param null|string $locale
-     * @return Vlocation
+     * @return IcalVlocation
      * @throws Exception
      */
-    public static function processTo( int|string $id, LocationDto $locationDto, ? string $locale = null ) : Vlocation
+    public static function processToIcal(
+        int|string $id,
+        LocationDto $locationDto,
+        ? string $locale = null
+    ) : IcalVlocation
     {
-        $vLocation = new Vlocation();
+        $vLocation = new IcalVlocation();
         $vLocation->setUid( $id );
 //      $vlocation->setXprop( Vlocation::X_VLOCATIONID, $id );
 
-        $geoUrlParams   = empty( $locale ) ? [] : [ Vlocation::LANGUAGE => $locale ];
+        $geoUrlParams   = empty( $locale ) ? [] : [ IcalVlocation::LANGUAGE => $locale ];
 
         if( $locationDto->isNameSet()) {
             $vLocation->setName( $locationDto->getName(), $geoUrlParams );
@@ -87,20 +91,20 @@ class Location extends BaseIcal
         if( $locationDto->isCoordinatesSet()) {
             static $urlSetMethod = 'setUrl';
             static $geoSetMethod = 'setGeo';
-            $value  = $locationDto->getCoordinates();
-            $urlSet = ! method_exists( $vLocation, $urlSetMethod ); // i.e. false if exists
+            $value      = $locationDto->getCoordinates();
+            $hasPropUrl = method_exists( $vLocation, $urlSetMethod );
             if( str_starts_with( $value, self::$geoPrefix )) {
-                $geoSet = ! method_exists( $vLocation, $geoSetMethod ); // i.e. false if exists
+                $hasPropGeo   = method_exists( $vLocation, $geoSetMethod );
                 $geoUrlParams = [ self::$X_GEOURLKEY => $value ];
-                if( ! $geoSet ) {
+                if( $hasPropGeo ) {
                     $value2 = substr( $value, 4 );
                     if( str_contains( $value2, self::$SQ ) ) {
-                        $value2 = StringFactory::before( self::$SQ, $value2 );
+                        $value2 = substr( $value2, 0, strpos( $value2, self::$SQ ));
                     }
                     [ $lat, $long ] = explode( self::$itemSeparator, $value2 );
                     $vLocation->setGeo( $lat, $long, $geoUrlParams );
                 }
-                elseif( ! $urlSet ) {
+                elseif( $hasPropUrl ) {
                     $vLocation->setUrl( $value, $geoUrlParams );
                 }
             } // end if
@@ -108,7 +112,7 @@ class Location extends BaseIcal
 
         // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA
         if( ! empty( $locationDto->getLinksCount())) {
-            Link::processLinksTo( $locationDto->getLinks(), $vLocation );
+            Link::processLinksToIcal( $locationDto->getLinks(), $vLocation );
         }
 
         // timezone as xProp
@@ -125,15 +129,19 @@ class Location extends BaseIcal
      * @param int|string $id
      * @param LocationDto $locationDto
      * @param null|string $locale
-     * @return mixed[]   [ locationValue, locationParams ]
+     * @return array   [ locationValue, locationParams ]
      */
-    public static function processToLocationArr( int|string $id, LocationDto $locationDto, ? string $locale = null ) : array
+    public static function processToIcalLocationArr(
+        int|string $id,
+        LocationDto $locationDto,
+        ? string $locale = null
+    ) : array
     {
         $locationValue  = null;
-        $locationParams = [ Vlocation::X_VLOCATIONID => $id ];
+        $locationParams = [ IcalVlocation::X_VLOCATIONID => $id ];
 
         if( ! empty( $locale )) {
-            $locationParams[Vlocation::LANGUAGE] = $locale;
+            $locationParams[IcalVlocation::LANGUAGE] = $locale;
         }
         if( $locationDto->isNameSet()) {
             $locationValue = $locationDto->getName();
@@ -141,7 +149,7 @@ class Location extends BaseIcal
 
         // array of "String[Boolean]"  ONLY one accepted BUT multiple comma separated..
         if( ! empty( $locationDto->getLocationTypesCount())) {
-            $locationParams[Vlocation::X_LOCATION_TYPE] =
+            $locationParams[IcalVlocation::X_LOCATION_TYPE] =
                 implode( self::$itemSeparator, array_keys( $locationDto->getLocationTypes()));
         } // end if
 
@@ -159,13 +167,13 @@ class Location extends BaseIcal
     /**
      * Ical iCal Vlocation to Location
      *
-     * @param Vlocation $vlocation has NO X-prop self::VIRTUALLOCATION (i.e. is Location)
-     * @return mixed[]     [ id, Dto ]
+     * @param IcalComponent|IcalVlocation $vlocation has NO X-prop self::VIRTUALLOCATION (i.e. is Location)
+     * @return array     [ id, Dto ]
      * @throws Exception
      */
-    public static function processFrom( Vlocation $vlocation ) : array
+    public static function processFromIcal( IcalComponent|IcalVlocation $vlocation ) : array
     {
-        $id = ( false !== ( $value = $vlocation->getXprop( Vlocation::X_VLOCATIONID )))
+        $id = ( false !== ( $value = $vlocation->getXprop( IcalVlocation::X_VLOCATIONID )))
             ? $value[1]
             : $vlocation->getUid();
 
@@ -190,41 +198,42 @@ class Location extends BaseIcal
             $locationDto->setRelativeTo( $vlocation->getXprop( $relativeToKey )[1] );
         }
 
-        // GEO
+        // opt GEO
+        static $isGeoSet     = 'isGeoSet';
         static $geoGetMethod = 'getGeo';
-        static $geoIsMethod  = 'isGeoSet';
         $urlGeoValues   = [];
-        if( method_exists( $vlocation, $geoGetMethod ) && $vlocation->{$geoIsMethod}()) {
-            $value = $vlocation->{$geoGetMethod}( true );
-            if( $value->hasParamKey( self::$X_GEOURLKEY )) {
-                $urlValue       = $value->getParams( self::$X_GEOURLKEY );
+        if( self::existsAndIsset( $vlocation, $isGeoSet )) {
+            $geoCnt = $vlocation->{$geoGetMethod}( true );
+            if( $geoCnt->hasParamKey( self::$X_GEOURLKEY )) {
+                $urlValue       = $geoCnt->getParams( self::$X_GEOURLKEY );
                 $locationDto->setCoordinates( $urlValue );
                 $urlGeoValues[] = $urlValue;
             }
             else {
+                $latLongs = $geoCnt->getValue();
                 $locationDto->setLatLongCoordinates(
-                    $value->value[Vlocation::LATITUDE],
-                    $value->value[Vlocation::LATITUDE]
+                    $latLongs[IcalVlocation::LATITUDE],
+                    $latLongs[IcalVlocation::LATITUDE]
                 );
                 $urlGeoValues[] = self::$geoPrefix .
-                    $value->value[Vlocation::LATITUDE] .
+                    $latLongs[IcalVlocation::LATITUDE] .
                     self::$itemSeparator .
-                    $value->value[Vlocation::LATITUDE];
+                    $latLongs[IcalVlocation::LATITUDE];
             }
         } // end if
         // opt URL (may also contain GEO, also, opt, as xProp below)
+        static $isUrlSet     = 'isUrlSet';
         static $urlGetMethod = 'getUrl';
-        static $urlIsMethod  = 'isUrlSet';
-        if( method_exists( $vlocation, $urlGetMethod ) && $vlocation->{$urlIsMethod}()) {
+        if( self::existsAndIsset( $vlocation, $isUrlSet )) {
             $value        = $vlocation->{$urlGetMethod}( true );
-            $hasGeoPrefix = ( 0 === stripos( $value->value, self::$geoPrefix ));
-            $hasParamsKey = isset( $value->params[self::$X_GEOURLKEY] );
+            $hasGeoPrefix = ( 0 === stripos( $value->getValue(), self::$geoPrefix ));
+            $hasParamsKey = $value->hasParamKey( self::$X_GEOURLKEY );
             $urlValue     = $hasGeoPrefix
-                ? self::$geoPrefix . substr( $value->value, 4 )
-                : $value->value; // NO geo:Url
+                ? self::$geoPrefix . substr( $value->getValue(), 4 )
+                : $value->getValue(); // NO geo:Url
             switch( true ) {
                 case ( ! $locationDto->isCoordinatesSet() && $hasParamsKey ) : // param before value
-                    $urlValue = $value->params[self::$X_GEOURLKEY];
+                    $urlValue = $value->getParams( self::$X_GEOURLKEY );
                     if( ! in_array( $urlValue, $urlGeoValues, true )) {
                         $locationDto->setCoordinates( $urlValue );
                         $urlGeoValues[] = $urlValue;
@@ -248,7 +257,7 @@ class Location extends BaseIcal
         } // end if
 
         // array of "Id[Link]"   from iCal IMAGE/STRUCTURED_DATA
-        Link::processLinksFrom( $vlocation, $locationDto );
+        Link::processLinksFromIcal( $vlocation, $locationDto );
 
         $timezoneKey = self::setXPrefix( self::TIMEzONE );
         if( $vlocation->isXpropSet(( $timezoneKey ))) {
@@ -261,22 +270,22 @@ class Location extends BaseIcal
     /**
      * Ical property content (value and params) to Location
      *
-     * @param Pc $content
-     * @return mixed[]     [ id, Dto ]
+     * @param Pc $content Ical property content
+     * @return array     [ id, Dto ]
      * @throws Exception
      */
-    public static function fromIcaLocation( Pc $content ) : array
+    public static function fromIcalLocation( Pc $content ) : array
     {
-        $id = $content->hasParamKey( Vlocation::X_VLOCATIONID )
-            ? $content->getParams( Vlocation::X_VLOCATIONID )
+        $id = $content->hasParamKey( IcalVlocation::X_VLOCATIONID )
+            ? $content->getParams( IcalVlocation::X_VLOCATIONID )
             : LocationDto::getNewUid();
         $locationDto = new LocationDto();
 
-        $locationDto->setName( $content->value );
+        $locationDto->setName( $content->getValue());
 
-        if( $content->hasParamKey( Vlocation::X_LOCATION_TYPE )) {
+        if( $content->hasParamKey( IcalVlocation::X_LOCATION_TYPE )) {
             foreach(
-                explode( self::$itemSeparator, $content->getParams( Vlocation::X_LOCATION_TYPE ))
+                explode( self::$itemSeparator, $content->getParams( IcalVlocation::X_LOCATION_TYPE ))
                 as $locationType ) {
                 $locationDto->addLocationType( $locationType );
             }

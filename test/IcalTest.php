@@ -40,11 +40,11 @@ use PHPUnit\Framework\TestCase;
 class IcalTest extends TestCase
 {
     /**
-     * iCalTest6 provider
+     * iCal2dto2iCalTest provider
      *
      * @return mixed[]
      */
-    public function iCalProvider() : array
+    public function iCal2dto2iCalTestProvider() : array
     {
         $dataArr = [];
 
@@ -55,7 +55,7 @@ class IcalTest extends TestCase
             "PRODID:-//ShopReply Inc//CalReply 1.0//EN\r\n" .
             "METHOD:REFRESH\r\n" .
             "SOURCE;x-a=first;VALUE=uri:message://https://www.masked.de/account/subscripti\r\n" .
-            " on/delivery/8878/%3Fweek=2021-W03\r\n" .
+            " /delivery/8878/%3Fweek=2021-W03\r\n" .
             "X-WR-CALNAME:ESPN Daily Calendar\r\n" .
             "X-WR-RELCALID:657d63b8-df1d-e611-8b88-06bb54d48d13\r\n" .
             "X-PUBLISH-TTL:P1D\r\n" .
@@ -153,6 +153,33 @@ class IcalTest extends TestCase
             "END:VCALENDAR\r\n"
         ];
 
+        // as rfc 9073 8.1.  Example 1, extended with VLOCATION inside PARTICIPANT
+        // BUT only STRUCTURED-DATA
+        $dataArr[] = [
+            612,
+            "BEGIN:VCALENDAR\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:123456\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/event.vcf\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://example.com/participant1.vcf\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://www.example.com/participant2.vcf\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant2/vlocation1.vcf\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant3/vlocation1.vcf\r\n" .
+            "END:VLOCATION\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant3/vlocation2.vcf\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+
         // rfc 9073 8.2.  Example 2
         $dataArr[] = [
             621,
@@ -196,8 +223,8 @@ class IcalTest extends TestCase
             "PARTICIPANT-TYPE:ACTIVE\r\n" .
             "UID:v39lQGZvb2GFtcGxlLmNvbQ\r\n" .
 
-            "STRUCTURED-DATA;FMTTYPE=application/ld+json;SCHEMA=\"https://schema.org/Sp\r\n" .
-            " ortsEvent\";VALUE=TEXT:{\n                                                      \r\n" .
+            "STRUCTURED-DATA;VALUE=URI;FMTTYPE=application/ld+json;SCHEMA=\"https://sch\r\n" .
+            " ema.org/SportsEvent\";VALUE=TEXT:{\n                                                      \r\n" .
             " \"@context\": \"http://schema.org\"\\,\n                                          \r\n" .
             " \"@type\": \"SportsEvent\"\\,\n                                                   \r\n" .
             " \"homeTeam\": \"Pittsburgh Pirates\"\\,\n                                         \r\n" .
@@ -330,32 +357,103 @@ class IcalTest extends TestCase
      * Testing ical to dto to ical again
      *
      * @test
-     * @dataProvider iCalProvider
+     * @dataProvider iCal2dto2iCalTestProvider
      * @param int $case
      * @param string $iCalString
      */
-    public function iCal2dto2iCal( int $case, string $iCalString ) : void
+    public function iCal2dto2iCalTest( int $case, string $iCalString ) : void
     {
         $vcalendar     = new Vcalendar();
         $vcalendar->parse( $iCalString );
         $iCalString1   = $vcalendar->createCalendar();
 
-        // $this->assertSame( $iCalString, $iCalString1, 'error case 1-' . $case );
-        // echo 'case ' . $case . PHP_EOL . $iCalString  . PHP_EOL; // test ###
-        // echo 'case ' . $case . PHP_EOL . $iCalString1 . PHP_EOL; // test ###
+//      $this->assertSame( $iCalString, $iCalString1, __FUNCTION__ . ' error case ' . $case . '-1' );
+//      error_log( __METHOD__ . ' case ' . $case . PHP_EOL . $iCalString ); // test ###
+//      error_log( __METHOD__ . ' case ' . $case . PHP_EOL . $iCalString1 ); // test ###
 
         $phpJsCalendar = PhpJsCalendar::factory()->iCalParse( $vcalendar, true );
 
         $jsonString    = $phpJsCalendar->jsonWrite( null, true )
             ->getJsonString();
+//      error_log( __METHOD__ . ' case ' . $case . PHP_EOL . $jsonString ); // test ###
 
         $iCalString2   = $phpJsCalendar->setJsonString( $jsonString )
             ->iCalWrite()
             ->getVcalendar()
             ->createCalendar();
 
-        $this->assertSame( $iCalString1, $iCalString2, 'error case 2-' . $case );
+        $this->assertSame( $iCalString1, $iCalString2, __FUNCTION__ . ' error case ' . $case . '-2' );
 
-        // echo $c->createCalendar() . PHP_EOL; // test ###
+        // error_log( $c->createCalendar()); // test ###
+    }
+    /**
+     * iCal2dto2iCalTest2 provider
+     *
+     * @return mixed[]
+     */
+    public function iCal2dto2iCalTest2Provider() : array
+    {
+        $dataArr = [];
+
+        // STRUCTURED-DATA test Vevent
+        $dataArr[] = [
+            712,
+            "BEGIN:VCALENDAR\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:123456\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/eventStrDta1.vcf\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/eventStrDta2.vcf\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // STRUCTURED-DATA test Participant
+        $dataArr[] = [
+            722,
+            "BEGIN:VCALENDAR\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:123456\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "UID:123456\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://example.com/participant1.vcf\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://example.com/participant2.vcf\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // STRUCTURED-DATA test Vlocation
+        $dataArr[] = [
+            732,
+            "BEGIN:VCALENDAR\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:123456\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "UID:123456\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant1/vlocation1.vcf\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant1/vlocation2.vcf\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/vevent/vlocation1.vcf\r\n" .
+            "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/vevent/vlocation2.vcf\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+
+        return $dataArr;
+    }
+
+    /**
+     * Same as parseIcalTest BUT spec iCal comp property tests
+     *
+     * @test
+     * @dataProvider iCal2dto2iCalTest2Provider
+     * @param int $case
+     * @param string $iCalString
+     */
+    public function iCal2dto2iCalTest2( int $case, string $iCalString ) : void
+    {
+        $this->iCal2dto2iCalTest( $case, $iCalString );
     }
 }

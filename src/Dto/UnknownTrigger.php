@@ -42,7 +42,7 @@ final class UnknownTrigger extends BaseDto
     /**
      * Any UnknownTrigger properties, set and returned 'as is'
      *
-     * @var mixed[]
+     * @var array
      */
     private array $properties = [];
 
@@ -61,13 +61,13 @@ final class UnknownTrigger extends BaseDto
      * @param string $type
      * @return static
      */
-    public static function factoryType( string $type ) : static
+    public static function factoryType( string $type ) : UnknownTrigger
     {
         return ( new self())->setType( $type );
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getProperties() : array
     {
@@ -87,14 +87,14 @@ final class UnknownTrigger extends BaseDto
      * @param mixed $value
      * @return static
      */
-    public function addProperty( string $key, mixed $value ) : static
+    public function addProperty( string $key, mixed $value ) : UnknownTrigger
     {
         $this->properties[$key] = $value;
         return $this;
     }
 
     /**
-     * @param mixed[] $properties
+     * @param array $properties
      * @return UnknownTrigger
      */
     public function setProperties( array $properties ) : UnknownTrigger

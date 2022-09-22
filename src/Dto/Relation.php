@@ -42,7 +42,7 @@ final class Relation extends BaseDto
      * OR a value registered in the IANA "JSCalendar Enum Values" registry
      * OR a vendor-specific value
      *
-     * @var mixed[] String[Boolean]
+     * @var array String[Boolean]
      */
     private array $relation = [];
 
@@ -61,13 +61,13 @@ final class Relation extends BaseDto
      * @param string $relation
      * @return static
      */
-    public static function factoryRelation( string $relation ) : static
+    public static function factoryRelation( string $relation ) : Relation
     {
         return ( new self())->addRelation( $relation );
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getRelation() : array
     {
@@ -100,7 +100,7 @@ final class Relation extends BaseDto
     public function setRelation( array $relation ) : Relation
     {
         foreach( $relation as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addRelation( $key, $value );
             }
             else {

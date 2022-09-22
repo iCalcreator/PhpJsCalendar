@@ -44,9 +44,18 @@ class OffsetTrigger extends BaseDtoLad
     public static function load() : Dto
     {
         $faker = Faker\Factory::create();
-        $dto = new Dto();
+        $dto   = new Dto();
         $dto->setOffset( $faker->dateTime()->diff( $faker->dateTimeInInterval('12 hour', '+12 hours')));
-        $dto->setRelativeTo( $faker->randomElement( [ 'start', 'end' ] ));
+        switch( $faker->randomElement( range( 1, 5 ))) {
+            case 1 :
+//              $dto->setRelativeTo( 'start' ); // skip default
+                break;
+            case 2 :
+                $dto->setRelativeTo( 'end' );
+                break;
+            default :
+                break;
+        } // end switch
         return $dto;
     }
 }

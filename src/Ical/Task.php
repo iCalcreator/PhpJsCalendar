@@ -30,93 +30,105 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Vtimezone;
-use Kigkonsult\Icalcreator\Vtodo;
-use Kigkonsult\PhpJsCalendar\Dto\Task as TaskDto;
+use Kigkonsult\Icalcreator\CalendarComponent as IcalComponent;
+use Kigkonsult\Icalcreator\Vtimezone         as IcalVtimezone;
+use Kigkonsult\Icalcreator\Vtodo             as IcalVtodo;
+use Kigkonsult\PhpJsCalendar\Dto\Task        as TaskDto;
 
 class Task extends BaseEventTask
 {
     /**
-     * Ical Task properties to iCal Vtodo properties
+     * Task properties to iCal Vtodo properties
      *
      * @param TaskDto $taskDto
-     * @param Vtodo $vtodo
+     * @param IcalVtodo $iCalVtodo
      * @return array
      * @throws Exception
      */
-    public static function processTo( TaskDto $taskDto, Vtodo $vtodo  ) : array
+    public static function processToIcal( TaskDto $taskDto, IcalVtodo $iCalVtodo  ) : array
     {
-        parent::groupEventTaskProcessTo( $taskDto, $vtodo );
-        [ $vtimezones, $startDateTime ] = parent::eventTaskProcessTo( $taskDto, $vtodo );
+        parent::groupEventTaskProcessToIcal( $taskDto, $iCalVtodo );
+        [ $iCalVtimezones, ] = parent::eventTaskProcessToIcal( $taskDto, $iCalVtodo );
 
         $isDurationSet = $taskDto->isEstimatedDurationSet();
         $isDueSet      = $taskDto->isDueSet();
-        if( ! $isDurationSet && ! $isDueSet ) {
-            return $vtimezones;
-        }
         $dueParams  = [];
         switch( true ) {
+            case ( ! $isDueSet && ! $isDurationSet ) :
+                break;
             case ( ! $isDueSet && $isDurationSet ) :
-                $vtodo->setDuration( $taskDto->getEstimatedDuration());
+                $iCalVtodo->setDuration( $taskDto->getEstimatedDuration());
                 break;
             case $isDurationSet :
                 // if due AND duration set, set duration as a due x-param
-                $dueParams[self::setXPrefix( self::ESTIMATEDDURATION )] = $taskDto->getEstimatedDuration();
+                $dueParams[self::setXPrefix( self::ESTIMATEDDURATION )] =
+                    $taskDto->getEstimatedDuration();
                 // fall through
-            default :
+            default : // only due set
                 if( $taskDto->isShowWithoutTimeSet() && $taskDto->getShowWithoutTime()) {
-                    $dueParams[Vtodo::VALUE] = Vtodo::DATE;
+                    $dueParams[IcalVtodo::VALUE] = IcalVtodo::DATE;
                 }
                 $tzid = $taskDto->getTimeZone();
                 if( ! empty( $tzid )) {
-                    $dueParams[Vtodo::VALUE] = Vtodo::DATE_TIME; // for clarity
-                    $dueParams[Vtodo::TZID]  = $tzid;
+                    $dueParams[IcalVtodo::VALUE] = IcalVtodo::DATE_TIME; // for clarity
+                    $dueParams[IcalVtodo::TZID]  = $tzid;
                 }
-                $vtodo->setDue( $taskDto->getDue(), $dueParams );
+                $iCalVtodo->setDue( $taskDto->getDue(), $dueParams );
                 break;
         } // end switch
 
         if( $taskDto->isPercentCompleteSet()) {
-            $vtodo->setPercentcomplete( $taskDto->getPercentComplete());
+            $iCalVtodo->setPercentcomplete( $taskDto->getPercentComplete());
         }
         // link : iCal VTODO status allowed values
-        static $vTodoStatusAllowed = [ 'NEEDS-ACTION', 'COMPLETED','IN-PROCESS','CANCELLED' ];
+        static $vTodoStatusAllowed = [
+            IcalVtodo::NEEDS_ACTION,
+            IcalVtodo::COMPLETED,
+            IcalVtodo::IN_PROCESS,
+            IcalVtodo::CANCELLED
+        ];
         if( $taskDto->isProgressSet()) {
             $status = strtoupper( $taskDto->getProgress());
             if( in_array( $status, $vTodoStatusAllowed, true )) {
-                $vtodo->setStatus( $taskDto->getProgress() );
+                $iCalVtodo->setStatus( $taskDto->getProgress() );
             }
             else {
-                $vtodo->setXprop( self::setXPrefix( self::PROGRESS ), $status);
+                $iCalVtodo->setXprop( self::setXPrefix( self::PROGRESS ), $status);
             }
             if( $taskDto->isProgressUpdatedSet()) {
-                $vtodo->setXprop( self::setXPrefix( self::PROGRESSUPDATED ), $taskDto->getProgressUpdated() );
+                $iCalVtodo->setXprop(
+                    self::setXPrefix( self::PROGRESSUPDATED ),
+                    $taskDto->getProgressUpdated()
+                );
             }
         }
 
-        return $vtimezones;
+        return $iCalVtimezones;
     }
 
     /**
      * Ical iCal Vevent properties to Event properties
      *
-     * @param Vtodo $vtodo
-     * @param Vtimezone[] $vtimezones
+     * @param IcalComponent|IcalVtodo $icalVtodo
+     * @param IcalVtimezone[] $iCalVtimezones
      * @return TaskDto
      * @throws Exception
      */
-    public static function processFrom( Vtodo $vtodo, array $vtimezones ) : TaskDto
+    public static function processFromIcal(
+        IcalComponent|IcalVtodo $icalVtodo,
+        array $iCalVtimezones
+    ) : TaskDto
     {
         $taskDto = new TaskDto();
-        parent::groupEventTaskProcessFrom( $vtodo, $taskDto  );
+        parent::groupEventTaskProcessFromIcal( $icalVtodo, $taskDto  );
         // $startDateTime =
-        parent::eventTaskProcessFrom( $vtodo, $taskDto, $vtimezones );
+        parent::eventTaskProcessFromIcal( $icalVtodo, $taskDto, $iCalVtimezones );
 
-        if( $vtodo->isDueSet()) {
-            $due = $vtodo->getDue( true );
-            $taskDto->setDue( $due->value );
-            if( $due->hasParamKey( Vtodo::TZID ) && empty( $taskDto->getTimeZone())) {
-                $taskDto->setTimeZone( $due->getParams( Vtodo::TZID ));
+        if( $icalVtodo->isDueSet()) {
+            $due = $icalVtodo->getDue( true );
+            $taskDto->setDue( $due->getValue());
+            if( $due->hasParamKey( IcalVtodo::TZID ) && empty( $taskDto->getTimeZone())) {
+                $taskDto->setTimeZone( $due->getParams( IcalVtodo::TZID ));
             }
             $estDurKey = self::setXPrefix( self::ESTIMATEDDURATION );
             if( $due->hasParamKey( $estDurKey )) {
@@ -124,25 +136,25 @@ class Task extends BaseEventTask
                 $taskDto->setEstimatedDuration( $due->getParams( $estDurKey ));
             }
         }
-        elseif( $vtodo->isDurationSet()) {
-            $taskDto->setEstimatedDuration( $vtodo->getDuration());
+        elseif( $icalVtodo->isDurationSet()) {
+            $taskDto->setEstimatedDuration( $icalVtodo->getDuration());
         }
 
-        if( $vtodo->isPercentCompleteSet()) {
-            $taskDto->setPercentComplete( $vtodo->getPercentComplete());
+        if( $icalVtodo->isPercentCompleteSet()) {
+            $taskDto->setPercentComplete( $icalVtodo->getPercentComplete());
         }
 
         $statusKey = self::setXPrefix( self::PROGRESS );
         $status = match( true ) {
-            $vtodo->isStatusSet() => $vtodo->getStatus(),
-            $vtodo->isXpropSet( $statusKey ) => $vtodo->getXprop( $statusKey )[1],
+            $icalVtodo->isStatusSet() => $icalVtodo->getStatus(),
+            $icalVtodo->isXpropSet( $statusKey ) => $icalVtodo->getXprop( $statusKey )[1],
             default               => null,
         };
         if( null !== $status ) {
             $taskDto->setProgress( $status );
             $key = self::setXPrefix( self::PROGRESSUPDATED );
-            if( $vtodo->isXpropSet( $key )) {
-                $taskDto->setProgressUpdated( $vtodo->getXprop( $key )[1] );
+            if( $icalVtodo->isXpropSet( $key )) {
+                $taskDto->setProgressUpdated( $icalVtodo->getXprop( $key )[1] );
             }
         }
         return $taskDto;

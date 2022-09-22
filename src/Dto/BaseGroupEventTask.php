@@ -29,7 +29,6 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
-use DateTime;
 use DateTimeInterface;
 use Exception;
 use Kigkonsult\PhpJsCalendar\Dto\Traits\LinksTrait;
@@ -136,7 +135,7 @@ abstract class BaseGroupEventTask extends BaseDto
     }
 
     /**
-     * @return mixed[]   String[Boolean]
+     * @return array   String[Boolean]
      */
     public function getCategories() : array
     {
@@ -163,13 +162,13 @@ abstract class BaseGroupEventTask extends BaseDto
     }
 
     /**
-     * @param string[] $categories  String[Boolean] or string[]
+     * @param array $categories  String[Boolean] or string[]
      * @return static
      */
     public function setCategories( array $categories ) : static
     {
         foreach( $categories as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addCategory( $key, $value );
             }
             else {
@@ -198,10 +197,10 @@ abstract class BaseGroupEventTask extends BaseDto
     }
 
     /**
-     * @param null|string $color
+     * @param string $color
      * @return static
      */
-    public function setColor( ? string $color ) : static
+    public function setColor( string $color ) : static
     {
         $this->color = $color;
         return $this;
@@ -237,18 +236,18 @@ abstract class BaseGroupEventTask extends BaseDto
      * If DateTime, any timezone allowed, converted to UTC DateTime
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $created any timeZone, save in UTC DateTime
+     * @param string|DateTimeInterface $created any timeZone, saved in UTC DateTime
      * @return static
      * @throws Exception
      */
-    public function setCreated( null|string|DateTimeInterface $created = null ) : static
+    public function setCreated( string|DateTimeInterface $created ) : static
     {
-        $this->created = self::toUtcDateTime( $created ?? new DateTime(), false );
+        $this->created = self::toUtcDateTime( $created, false );
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getKeywords() : array
     {
@@ -277,13 +276,13 @@ abstract class BaseGroupEventTask extends BaseDto
     }
 
     /**
-     * @param string[] $keywords   String[Boolean] or string[]
+     * @param array $keywords   String[Boolean] or string[]
      * @return static
      */
     public function setKeywords( array $keywords ) : static
     {
         foreach( $keywords as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addKeyword( $key, $value );
             }
             else {
@@ -312,10 +311,10 @@ abstract class BaseGroupEventTask extends BaseDto
     }
 
     /**
-     * @param null|string $locale
+     * @param string $locale
      * @return static
      */
-    public function setLocale( ? string $locale ) : static
+    public function setLocale( string $locale ) : static
     {
         $this->locale = $locale;
         return $this;

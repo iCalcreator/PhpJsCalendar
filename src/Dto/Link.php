@@ -122,7 +122,7 @@ final class Link extends BaseDto
      * @param string $href
      * @return static
      */
-    public static function factoryHref( string $href ) : static
+    public static function factoryHref( string $href ) : Link
     {
         return ( new self())->setHref( $href );
     }
@@ -149,7 +149,7 @@ final class Link extends BaseDto
      * @param string $href
      * @return static
      */
-    public function setHref( string $href ) : static
+    public function setHref( string $href ) : Link
     {
         $this->href = $href;
         return $this;
@@ -167,7 +167,7 @@ final class Link extends BaseDto
      * @param string $cid
      * @return static
      */
-    public function setCid( string $cid ) : static
+    public function setCid( string $cid ) : Link
     {
         $this->cid = $cid;
         return $this;
@@ -192,10 +192,10 @@ final class Link extends BaseDto
     }
 
     /**
-     * @param null|string $contentType
+     * @param string $contentType
      * @return static
      */
-    public function setContentType( ? string $contentType ) : static
+    public function setContentType( string $contentType ) : Link
     {
         $this->contentType = $contentType;
         return $this;
@@ -220,11 +220,12 @@ final class Link extends BaseDto
     }
 
     /**
-     * @param null|int $size
+     * @param int $size
      * @return static
      */
-    public function setSize( ?int $size ) : static
+    public function setSize( int $size ) : Link
     {
+        self::assertUnsignedInt( $size, self::SIZE );
         $this->size = $size;
         return $this;
     }
@@ -248,10 +249,10 @@ final class Link extends BaseDto
     }
 
     /**
-     * @param null|string $rel
+     * @param string $rel
      * @return static
      */
-    public function setRel( ? string $rel ) : static
+    public function setRel( string $rel ) : Link
     {
         $this->rel = $rel;
         return $this;
@@ -276,10 +277,10 @@ final class Link extends BaseDto
     }
 
     /**
-     * @param null|string $display
+     * @param string $display
      * @return static
      */
-    public function setDisplay( ? string $display ) : static
+    public function setDisplay( string $display ) : Link
     {
         $this->display = $display;
         return $this;

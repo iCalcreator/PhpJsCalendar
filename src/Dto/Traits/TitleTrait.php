@@ -55,10 +55,10 @@ trait TitleTrait
     }
 
     /**
-     * @param null|string $title   default ''
+     * @param string $title   default ''
      * @return static
      */
-    public function setTitle( ? string $title ) : static
+    public function setTitle( string $title ) : static
     {
         $this->title = empty( $title ) ? null : $title;
         return $this;

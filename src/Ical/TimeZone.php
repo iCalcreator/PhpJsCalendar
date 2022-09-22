@@ -30,30 +30,26 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Daylight;
-use Kigkonsult\Icalcreator\Standard;
-use Kigkonsult\Icalcreator\Vtimezone;
+use Kigkonsult\Icalcreator\Daylight       as IcalDaylight;
+use Kigkonsult\Icalcreator\Standard       as IcalStandard;
+use Kigkonsult\Icalcreator\Vtimezone      as IcalVtimezone;
 use Kigkonsult\PhpJsCalendar\Dto\TimeZone as TimeZoneDto;
 
 class TimeZone extends BaseIcal
 {
     /**
-     * @var string
-     */
-    private static string $S = '/';
-
-    /**
-     * Ical TimeZone properties to iCal Vtimezone
+     * TimeZone properties to iCal Vtimezone
      *
      * @param string $id
      * @param TimeZoneDto $timeZoneDto
-     * @return Vtimezone
+     * @return IcalVtimezone
      * @throws Exception
      */
-    public static function processTo( string $id, TimeZoneDto $timeZoneDto  ) : Vtimezone
+    public static function processToIcal( string $id, TimeZoneDto $timeZoneDto  ) : IcalVtimezone
     {
-        $vtimezone = new Vtimezone();
-        $vtimezone->setTzid( $timeZoneDto->getTzId() ?: ltrim( $id, self::$S ));
+        static$S   = '/';
+        $vtimezone = new IcalVtimezone();
+        $vtimezone->setTzid( $timeZoneDto->getTzId() ?: ltrim( $id, $S ));
 
         if( $timeZoneDto->isUpdatedSet()) {
             $vtimezone->setLastmodified( $timeZoneDto->getUpdated());
@@ -73,12 +69,12 @@ class TimeZone extends BaseIcal
         // array of "TimeZoneRule[]"
         if( ! empty( $timeZoneDto->getStandardCount())) {
             foreach( $timeZoneDto->getStandard() as $standard ) {
-                TimeZoneRule::processTo( $standard, $vtimezone->newStandard());
+                TimeZoneRule::processToIcal( $standard, $vtimezone->newStandard());
             }
         }
         if( ! empty( $timeZoneDto->getDaylightCount())) {
             foreach( $timeZoneDto->getDaylight() as $daylight ) {
-                TimeZoneRule::processTo( $daylight, $vtimezone->newDaylight() );
+                TimeZoneRule::processToIcal( $daylight, $vtimezone->newDaylight() );
             }
         }
         return $vtimezone;
@@ -88,11 +84,15 @@ class TimeZone extends BaseIcal
      * Ical iCal Vtimezone property to TimeZone
      *
      * @param string $timeZoneId
-     * @param Vtimezone $vtimezone
+     * @param IcalVtimezone $vtimezone
      * @return TimeZoneDto
      * @throws Exception
+     * @since 0.9.2 - 2022-08-24
      */
-    public static function processFrom( string $timeZoneId, Vtimezone $vtimezone ) : TimeZoneDto
+    public static function processFromIcal(
+        string $timeZoneId,
+        IcalVtimezone $vtimezone
+    ) : TimeZoneDto
     {
         $timeZoneDto = new TimeZoneDto();
 
@@ -111,18 +111,17 @@ class TimeZone extends BaseIcal
         }
 
         // array of "String[Boolean]"
-        while( false !== ( $value = $vtimezone->getTzidaliasof())) {
-            $timeZoneDto->addAlias( $value );
+        foreach( $vtimezone->getAllTzidaliasof() as $tzidAliasOf ) {
+            $timeZoneDto->addAlias( $tzidAliasOf );
         }
 
         // arrays of "TimeZoneRule[]"
-        $vtimezone->resetCompCounter();
-        while( false !== ( $component = $vtimezone->getComponent())) {
-            $timezoneRule = TimeZoneRule::processFrom( $component );
-            if( $component instanceof Standard ) {
+        foreach( $vtimezone->getComponents() as $component ) {
+            $timezoneRule = TimeZoneRule::processFromIcal( $component );
+            if( $component instanceof IcalStandard ) {
                 $timeZoneDto->addStandard( $timezoneRule );
             }
-            elseif( $component instanceof Daylight ) {
+            elseif( $component instanceof IcalDaylight ) {
                 $timeZoneDto->addDaylight( $timezoneRule );
             }
         }

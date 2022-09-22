@@ -52,9 +52,9 @@ class PatchObject extends BaseEventTask
      * All keys will be in upper case
      *
      * @param PatchObjectDto $patchObjectDto
-     * @return mixed[]
+     * @return array
      */
-    public static function processTo( PatchObjectDto $patchObjectDto  ) : array
+    public static function processToIcalXparams( PatchObjectDto $patchObjectDto  ) : array
     {
         $params = [];
         foreach( $patchObjectDto->getPatches() as $pKey => $pValue ) {
@@ -74,7 +74,7 @@ class PatchObject extends BaseEventTask
     }
 
     /**
-     * @param mixed[] $patchArray
+     * @param array $patchArray
      * @param string[] $params
      * @param null|string $prefixKey
      */
@@ -96,7 +96,7 @@ class PatchObject extends BaseEventTask
                 $value = $value ? Vcalendar::TRUE : Vcalendar::FALSE;
             }
             $params[$key] = $value;
-        }
+        } // end foreach
     }
 
 
@@ -130,7 +130,7 @@ class PatchObject extends BaseEventTask
      * @return PatchObjectDto
      * @throws Exception
      */
-    public function processFrom( array $params ) : PatchObjectDto
+    public function processFromIcalXparams( array $params ) : PatchObjectDto
     {
         $patches = [];
         foreach( $params as $key => $value ) {

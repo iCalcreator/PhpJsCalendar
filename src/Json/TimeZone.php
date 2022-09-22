@@ -78,7 +78,7 @@ class TimeZone extends BaseJson
      * Write TimeZone Dto properties to json array
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

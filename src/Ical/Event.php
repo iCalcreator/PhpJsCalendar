@@ -30,68 +30,78 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Vevent;
-use Kigkonsult\Icalcreator\Vtimezone;
-use Kigkonsult\PhpJsCalendar\Dto\Event as EventDto;
+use Kigkonsult\Icalcreator\CalendarComponent as IcalComponent;
+use Kigkonsult\Icalcreator\Vevent            as IcalVevent;
+use Kigkonsult\Icalcreator\Vtimezone         as IcalVtimezone;
+use Kigkonsult\PhpJsCalendar\Dto\Event       as EventDto;
 
 class Event extends BaseEventTask
 {
     /**
-     * Ical Event properties to iCal Vevent
+     * Event properties to iCal Vevent
      *
      * @param EventDto $eventDto
-     * @param Vevent $vevent
-     * @return mixed[]  id[Vtimezone]
+     * @param IcalVevent $iCalVevent
+     * @return array  id[IcalVtimezone]
      * @throws Exception
      */
-    public static function processTo( EventDto $eventDto, Vevent $vevent  ) : array
+    public static function processToIcal( EventDto $eventDto, IcalVevent $iCalVevent  ) : array
     {
-        parent::groupEventTaskProcessTo( $eventDto, $vevent );
-        [ $vtimezones, $startDateTime ] = parent::eventTaskProcessTo( $eventDto, $vevent );
+        parent::groupEventTaskProcessToIcal( $eventDto, $iCalVevent );
+        [ $iCalVtimezones, $startDateTime ] = parent::eventTaskProcessToIcal( $eventDto, $iCalVevent );
 
         $duration = $eventDto->getDuration( false );
         switch( true) {
             case empty( $duration ) :
                 break;
             case empty( $startDateTime ) :
-                $vevent->setDuration( $duration );
+                $iCalVevent->setDuration( $duration );
                 break;
             default :
-                $vevent->setDtend( $startDateTime->add( $duration ));
+                $iCalVevent->setDtend(
+                    $startDateTime->add( $duration ),
+                    (( $eventDto->isShowWithoutTimeSet() && $eventDto->getShowWithoutTime())
+                        ? [ IcalVevent::VALUE => IcalVevent::DATE ]
+                        : []
+                    )
+                );
                 break;
-        }
+        } // end switch
 
         if( $eventDto->isStatusSet()) {
-            $vevent->setStatus( $eventDto->getStatus());
+            $iCalVevent->setStatus( $eventDto->getStatus());
         }
 
-        return $vtimezones;
+        return $iCalVtimezones;
     }
 
     /**
      * Ical iCal Vevent properties to Event properties
      *
-     * @param Vevent $vevent
-     * @param Vtimezone[] $vtimezones
+     * @param IcalComponent|IcalVevent $iCalVevent
+     * @param IcalVtimezone[] $iCalVtimezones
      * @return EventDto
      * @throws Exception
      */
-    public static function processFrom( Vevent $vevent, array $vtimezones ) : EventDto
+    public static function processFromIcal(
+        IcalComponent|IcalVevent $iCalVevent,
+        array $iCalVtimezones
+    ) : EventDto
     {
         $eventDto = new EventDto();
-        parent::groupEventTaskProcessFrom( $vevent, $eventDto  );
-        $startDateTime = parent::eventTaskProcessFrom( $vevent, $eventDto, $vtimezones );
+        parent::groupEventTaskProcessFromIcal( $iCalVevent, $eventDto  );
+        $startDateTime = parent::eventTaskProcessFromIcal( $iCalVevent, $eventDto, $iCalVtimezones );
 
-        if( $vevent->isDurationSet()) {
-            $eventDto->setDuration( $vevent->getDuration());
+        if( $iCalVevent->isDurationSet()) {
+            $eventDto->setDuration( $iCalVevent->getDuration());
         }
-        elseif(( null !== $startDateTime ) && $vevent->isDtendSet()) {
-            $dtEnd = $vevent->getDtend();
+        elseif(( null !== $startDateTime ) && $iCalVevent->isDtendSet()) {
+            $dtEnd = $iCalVevent->getDtend();
             $eventDto->setDuration( $startDateTime->diff( $dtEnd->setTimezone( $startDateTime->getTimezone())));
         }
 
-        if( $vevent->isStatusSet()) {
-            $eventDto->setStatus( strtolower( $vevent->getStatus()));
+        if( $iCalVevent->isStatusSet()) {
+            $eventDto->setStatus( strtolower( $iCalVevent->getStatus()));
         }
 
         return $eventDto;

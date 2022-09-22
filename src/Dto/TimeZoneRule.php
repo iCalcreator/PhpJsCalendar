@@ -67,7 +67,7 @@ final class TimeZoneRule extends BaseDto
     /**
      * the TZNAME properties from iCalendar, optional
      *
-     * @var mixed[]  String[Boolean]
+     * @var array  String[Boolean]
      */
     private array $names = [];
 
@@ -109,7 +109,7 @@ final class TimeZoneRule extends BaseDto
      * @param string $offsetFrom
      * @return static
      */
-    public function setOffsetFrom( string $offsetFrom ) : static
+    public function setOffsetFrom( string $offsetFrom ) : TimeZoneRule
     {
         $this->offsetFrom = $offsetFrom;
         return $this;
@@ -137,14 +137,14 @@ final class TimeZoneRule extends BaseDto
      * @param string $offsetTo
      * @return static
      */
-    public function setOffsetTo( string $offsetTo ) : static
+    public function setOffsetTo( string $offsetTo ) : TimeZoneRule
     {
         $this->offsetTo = $offsetTo;
         return $this;
     }
 
     /**
-     * @return mixed[]   String[Boolean]
+     * @return array   String[Boolean]
      */
     public function getNames() : array
     {
@@ -164,20 +164,20 @@ final class TimeZoneRule extends BaseDto
      * @param null|bool $bool default true
      * @return static
      */
-    public function addName( string $name, ? bool $bool = true ) : static
+    public function addName( string $name, ? bool $bool = true ) : TimeZoneRule
     {
         $this->names[$name] = $bool;
         return $this;
     }
 
     /**
-     * @param string[] $names  String[Boolean] or string[]
+     * @param array $names  String[Boolean] or string[]
      * @return static
      */
-    public function setNames( array $names ) : static
+    public function setNames( array $names ) : TimeZoneRule
     {
         foreach( $names as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addName( $key, $value );
             }
             else {
@@ -207,7 +207,7 @@ final class TimeZoneRule extends BaseDto
      * @param string $comment
      * @return static
      */
-    public function addComment( string $comment ) : static
+    public function addComment( string $comment ) : TimeZoneRule
     {
         $this->comments[] = $comment;
         return $this;
@@ -217,7 +217,7 @@ final class TimeZoneRule extends BaseDto
      * @param string[] $comments
      * @return static
      */
-    public function setComments( array $comments ) : static
+    public function setComments( array $comments ) : TimeZoneRule
     {
         foreach( $comments as $comment ) {
             $this->addComment( $comment );

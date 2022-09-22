@@ -66,10 +66,10 @@ trait SentByTrait
     /**
      * The SentBy value MUST be a valid "addr-spec" value as defined in Section 3.4.1 of [RFC5322].
      *
-     * @param null|string $sentBy
+     * @param string $sentBy
      * @return static
      */
-    public function setSentBy( ? string $sentBy ) : static
+    public function setSentBy( string $sentBy ) : static
     {
         $this->sentBy = $sentBy;
         return $this;

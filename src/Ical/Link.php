@@ -30,12 +30,12 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Participant;
+use Kigkonsult\Icalcreator\Participant       as IcalParticipant;
 use Kigkonsult\Icalcreator\Pc;
-use Kigkonsult\Icalcreator\Vcalendar;
-use Kigkonsult\Icalcreator\Vevent;
-use Kigkonsult\Icalcreator\Vlocation;
-use Kigkonsult\Icalcreator\Vtodo;
+use Kigkonsult\Icalcreator\Vcalendar         as IcalVcalendar;
+use Kigkonsult\Icalcreator\Vevent            as IcalVevent;
+use Kigkonsult\Icalcreator\Vlocation         as IcalVlocation;
+use Kigkonsult\Icalcreator\Vtodo             as IcalVtodo;
 use Kigkonsult\PhpJsCalendar\Dto\Event       as EventDto;
 use Kigkonsult\PhpJsCalendar\Dto\Group       as GroupDto;
 use Kigkonsult\PhpJsCalendar\Dto\Link        as LinkDto;
@@ -49,50 +49,49 @@ class Link extends BaseIcal
      * Links property to iCal IMAGE/STRUCTURED_DATA/URL/X-prop property
      *
      * @param LinkDto[] $links
-     * @param Participant|Vcalendar|Vevent|Vlocation|Vtodo $iCal
+     * @param IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp
      */
-    public static function processLinksTo(
+    public static function processLinksToIcal(
         array $links,
-        Participant|Vcalendar|Vevent|Vlocation|Vtodo $iCal
+        IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp
     ) : void
     {
         static $setImage = 'setImage';
         static $setStructureddata = 'setStructureddata';
-        static $seturl   = 'seturl';
-        static $S        = '/';
-        $hasImage   = method_exists( $iCal, $setImage );
-        $hasSdata   = method_exists( $iCal, $setStructureddata );
-        $hasUrl     = method_exists( $iCal, $seturl );
-        $isVlocaton = $iCal instanceof Vlocation;
+        static $setUrl    = 'seturl';
+        static $S         = '/';
+        $hasPropImage     = method_exists( $iCalComp, $setImage );
+        $hasPropStrucData = method_exists( $iCalComp, $setStructureddata );
+        $hasPropUrl       = method_exists( $iCalComp, $setUrl );
+        $isVlocaton = $iCalComp instanceof IcalVlocation;
         $urlCnt     = 0;
         $ctKey      = self::setXPrefix( self::CONTENTTYPE );
         $linkKey    = self::setXPrefix( self::LINK );
         foreach( $links as $id => $link ) {
             [ $value, $params ] = self::processTo( $id, $link );
+            $params[$iCalComp::VALUE] = $iCalComp::URI;
             $hasCtKeyParam = isset( $params[$ctKey] );
-            if( $hasImage &&
+            if( $hasPropImage &&
                 $hasCtKeyParam &&
-                ( 0 === stripos( $params[$ctKey], $iCal::IMAGE . $S ))) {
-                $params[$iCal::VALUE]   = $iCal::URI;
-                $params[$iCal::FMTTYPE] = $params[$ctKey];
+                ( 0 === stripos( $params[$ctKey], $iCalComp::IMAGE . $S ))) {
+                $params[$iCalComp::FMTTYPE] = $params[$ctKey];
                 unset( $params[$ctKey] );
-                $iCal->{$setImage}( $value, $params );
+                $iCalComp->{$setImage}( $value, $params ); // 0-x times
             }
-            elseif( ! $isVlocaton && $hasUrl && empty( $urlCnt )) {
-                $iCal->{$seturl}( $value, $params );
+            elseif( ! $isVlocaton && $hasPropUrl && empty( $urlCnt )) { // 0-1 times
+                unset( $params[$iCalComp::VALUE] );
+                $iCalComp->{$setUrl}( $value, $params );
                 ++$urlCnt;
             }
-            elseif( $hasSdata ) {
-                $params[$iCal::VALUE] = $iCal::URI;
-                $iCal->{$setStructureddata}( $value, $params );
+            elseif( $hasPropStrucData ) {
+                $iCalComp->setStructureddata( $value, $params ); // 0-X times
             }
             else {
-                $params[$iCal::VALUE] = $iCal::URI;
                 if( $hasCtKeyParam ) {
-                    $params[$iCal::FMTTYPE] = $params[$ctKey];
+                    $params[$iCalComp::FMTTYPE] = $params[$ctKey];
                     unset( $params[$ctKey] );
                 }
-                $iCal->setXprop( $linkKey . ++$urlCnt, $value, $params );
+                $iCalComp->setXprop( $linkKey . ++$urlCnt, $value, $params ); // 0-X times
             }
         } // end foreach
     }
@@ -102,7 +101,7 @@ class Link extends BaseIcal
      *
      * @param string $id
      * @param LinkDto $linkDto
-     * @return mixed[]   [ hrefValue, (x-)params ]
+     * @return array   [ hrefValue, (x-)params ]
      */
     public static function processTo( string $id, LinkDto $linkDto ) : array
     {
@@ -128,72 +127,75 @@ class Link extends BaseIcal
     }
 
     /**
-     * iCal IMAGE/STRUCTURED_DATA/URL/X-prop properties to Links property
+     * iCal IMAGE/STRUCTURED_DATA/URL/X-prop properties to Link properties
      *
-     * @param Participant|Vcalendar|Vevent|Vlocation|Vtodo $iCal
+     * @param IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp
      * @param GroupDto|EventDto|LocationDto|ParticipantDto|TaskDto $dto
      * @throws Exception
      */
-    public static function processLinksFrom(
-        Participant|Vcalendar|Vevent|Vlocation|Vtodo $iCal,
+    public static function processLinksFromIcal(
+        IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp,
         GroupDto|EventDto|LocationDto|ParticipantDto|TaskDto $dto
     ) : void
     {
-        static $getImage = 'getImage';
-        static $hasImage = 'isImageSet';
-        static $getStructureddata = 'getStructureddata';
-        static $hasStructureddata = 'isStructureddataSet';
-        static $getUrl   = 'getUrl';
-        static $hasUrl   = 'isUrlSet';
-        if( method_exists( $iCal, $hasImage ) && $iCal->{$hasImage}()) {
-            while( false !== ( $value = $iCal->{$getImage}( null, true ))) {
-                if( ! $value->hasParamkey( $iCal::VALUE ) ||
-                    ( $iCal::URI !== $value->getParams( $iCal::VALUE ))) {
+        static $isImageSet = 'isImageSet';
+        static $isStructureddataSet = 'isStructureddataSet';
+        static $isUrlSet   = 'isUrlSet';
+        // IMAGE (fmttype=image/.....) to Link
+        if( self::existsAndIsset( $iCalComp, $isImageSet )) {
+            foreach( $iCalComp->getAllImage(true ) as $imagePc ) {
+                if( ! $imagePc->hasParamKey( IcalVcalendar::VALUE, $iCalComp::URI )) {
                     continue;
                 }
-                if( ! $value->hasParamKey( $iCal::FMTTYPE ) ||
-                    ( 0 !== stripos( $value->getParams( $iCal::FMTTYPE ), $iCal::IMAGE ))) {
+                if( ! $imagePc->hasParamKey( $iCalComp::FMTTYPE ) ||
+                    ( 0 !== stripos( $imagePc->getParams( $iCalComp::FMTTYPE ), $iCalComp::IMAGE ))) {
                     continue;
                 }
-                [ $lid, $link ] = self::processFrom( $value );
+                [ $lid, $link ] = self::processFrom( $imagePc );
                 $dto->addLink(
                     $lid,
-                    $link->setContentType( $value->params[$iCal::FMTTYPE] )
+                    $link->setContentType( $imagePc->getParams( $iCalComp::FMTTYPE ))
                 );
-            } // end while
+            } // end foreach
         } // end if 'getImage'
-        if( ! $iCal instanceof Vlocation &&
-            method_exists( $iCal, $hasUrl ) && $iCal->{$hasUrl}()) {
-            [ $lid, $link ] = self::processFrom( $iCal->{$getUrl}( true ));
+        // URL to Link
+        if(( ! $iCalComp instanceof IcalVlocation ) &&
+            self::existsAndIsset( $iCalComp, $isUrlSet )) {
+            [ $lid, $link ] = self::processFrom( $iCalComp->getUrl( true ));
             $dto->addLink( $lid, $link );
         } // end if
-        if( method_exists( $iCal, $hasStructureddata ) && $iCal->{$hasStructureddata}()) {
-            while( false !== ( $value = $iCal->{$getStructureddata}( null, true ))) {
-                if( $value->hasParamKey( $iCal::VALUE ) &&
-                    ( $iCal::URI === $value->getParams( $iCal::VALUE ))) {
-                    [ $lid, $link ] = self::processFrom( $value );
+        // STRUCTURED_DATA (value=uri) to Link
+        if( self::existsAndIsset( $iCalComp, $isStructureddataSet )) {
+            foreach( $iCalComp->getAllStructureddata( true ) as $strucDataPc ) {
+                // temp iCal STRUCTURED_DATA bug (pre 2.1.66) : VALUE URI if no VALUE found
+                if( ! $strucDataPc->hasParamKey( $iCalComp::VALUE )) {
+                    $strucDataPc->addParamValue( $iCalComp::VALUE, $iCalComp::URI );
+                }
+                if( $strucDataPc->hasParamKey( $iCalComp::VALUE, $iCalComp::URI )) {
+                    [ $lid, $link ] = self::processFrom( $strucDataPc );
                     $dto->addLink( $lid, $link );
                 }
-            } // end while
+            } // end foreach
         } // end if 'getStructureddata'
+        // X-LINK to Link
         $linkKey = self::setXPrefix( self::LINK );
         $ctKey   = self::setXPrefix( self::CONTENTTYPE );
-        while( false !== ( $xProp = $iCal->getXprop( null, null, true ))) {
+        foreach( $iCalComp->getAllXprop( true ) as $xProp ) {
             if( str_starts_with( $xProp[0], $linkKey )) {
-                if( $xProp[1]->hasParamKey( $iCal::FMTTYPE )) {
-                    $xProp[1]->addParam( $ctKey, $xProp[1]->getParams( $iCal::FMTTYPE ));
+                if( $xProp[1]->hasParamKey( $iCalComp::FMTTYPE )) {
+                    $xProp[1]->addParam( $ctKey, $xProp[1]->getParams( $iCalComp::FMTTYPE ));
                 }
                 [ $lid, $link ] = self::processFrom( $xProp[1] );
                 $dto->addLink( $lid, $link );
             }
-        } // end while
+        } // end foreach
     }
 
     /**
-     * Ical Vevent|Vtodo IMAGE/STRUCTURED_DATA/URL/X-prop properties value to Link
+     * Ical Vevent|Vtodo IMAGE/STRUCTURED_DATA/URL/X-prop property value to Link
      *
      * @param Pc $value   iCal property value and parameters
-     * @return mixed[]    [ id, LINK ]
+     * @return array    [ id, LINK ]
      * @throws Exception
      */
     public static function processFrom( Pc $value ) : array
@@ -201,9 +203,9 @@ class Link extends BaseIcal
         // id/cid is default set as uuid
         $linkDto = new LinkDto();
         $id      = $linkDto->getCid();
-        $linkDto->setHref( $value->value );
+        $linkDto->setHref( $value->getValue());
 
-        $params  = self::unXPrefixKeys( $value->params );
+        $params  = self::unXPrefixKeys( $value->getParams());
         if( isset( $params[self::CID] )) {
             $linkDto->setCid( $params[self::CID] );
             $id  = $params[self::CID]; // replace

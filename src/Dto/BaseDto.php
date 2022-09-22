@@ -30,9 +30,11 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
 use DateTime;
+use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Exception;
+use InvalidArgumentException;
 
 abstract class BaseDto implements DtoInterface
 {
@@ -45,6 +47,11 @@ abstract class BaseDto implements DtoInterface
      * @var string LocalDateTime string format without timezone and fractions
      */
     public static string $LocalDateTimeFMT = 'Y-m-d\TH:i:s';
+
+    /**
+     * @var string
+     */
+    protected static string $SP0 = '';
 
     /**
      * @var string   This specifies the type that this object represents
@@ -78,8 +85,16 @@ abstract class BaseDto implements DtoInterface
 
     /** class static methods */
 
+    protected static function assertUnsignedInt( int $int, string $propName ) : void
+    {
+        static $ERR = ' expects an unsignedInt value, got ';
+        if( 0 > $int ) {
+            throw new InvalidArgumentException( $propName . $ERR . $int );
+        }
+    }
+
     /**
-     * Return an unique id as GUID v4 string
+     * Return an unique id as GUID v4 (lowercse) string
      *
      * @return string
      * @throws Exception
@@ -95,30 +110,45 @@ abstract class BaseDto implements DtoInterface
     }
 
     /**
+     * @param mixed $key
+     * @param mixed $value
+     * @return bool
+     */
+    protected static function isStringKeyAndBoolValue( mixed $key, mixed $value ) : bool
+    {
+        return ( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value ));
+    }
+
+    /**
      * Return (new) UTC DateTime from date string or DateTime
      *
      * @param string|DateTimeInterface $input
      * @param null|bool $asLocalDateTime   true: set UTC timezone, false: is in UTC
-     * @return DateTime|null
+     * @return DateTime
      * @throws Exception
      */
     protected static function toUtcDateTime(
         string | DateTimeInterface $input,
         ? bool $asLocalDateTime = true
-    ) : ? DateTime
+    ) : DateTime
     {
         static $UTC = 'UTC';
-        return match ( true ) {
-            ! $input instanceof DateTimeInterface
+        if( $input instanceof DateTimeImmutable ) {
+            $dtTmp = new DateTime( null, $input->getTimezone());
+            $dtTmp->setTimestamp( $input->getTimestamp());
+            $input = $dtTmp;
+        }
+        return match( true ) {
+            ! $input instanceof DateTimeInterface // set in UTC
                             => new DateTime( $input, new DateTimeZone( $UTC )),
             empty( $input->getOffset()) // is in UTC
                             => clone $input,
-            $asLocalDateTime            // set UTC
+            $asLocalDateTime            // set with UTC
                             => new DateTime(
                                 $input->format( self::$LocalDateTimeFMT ),
                                 new DateTimeZone( $UTC )
                             ),
-            default         => ( clone $input )->setTimezone( new DateTimeZone( $UTC )),
-        }; // end switch
+            default         => ( clone $input )->setTimezone( new DateTimeZone( $UTC )), // set in UTC
+        }; // end match
     }
 }

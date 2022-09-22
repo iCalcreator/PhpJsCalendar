@@ -50,7 +50,7 @@ class PatchObject
      * Ordered as in input
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

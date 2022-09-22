@@ -82,7 +82,7 @@ class TimeZoneRule extends BaseJson
      * Ordered as in rfc8984
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

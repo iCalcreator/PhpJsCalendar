@@ -9,11 +9,12 @@ is the PHP class package managing
 
 ###### Usage
 
-For package class and property structure, examine [rfc8984] 8.2.6.
-All properties has `get`,`set` and `is\<prop\>Set` methods, 
-for 'array' properties `get`, `get\<Prop\>Count`, `add` and `set`methods.
+For package class and property structure, examine [rfc8984] 8.2.6.<br>
+All properties has `get`,`set` and `is\<prop\>Set` methods, <br>
+for 'array' properties `get`, `get\<Prop\>Count`, `add` and `set`methods,<br>
+for detail review the [classPropList]
 
-For transformation guidelines from/to iCal, please review [classPropsList].
+For transformation guidelines from/to iCal [rfc5545] (requires [iCalcreator]), please review the [propClassList].
 Due to [rfc8984] / [rfc5545] disparity, iCal transformation tests may fail.
 
 
@@ -51,9 +52,10 @@ In your composer.json:
 
 PhpJsCalendar is licensed under the LGPLv3 License.
 
-[classPropsList]:docs/classPropsList.md
+[classPropList]:docs/classPropList.md
 [iCalcreator]:https://github.com/iCalcreator/iCalcreator
 [github.com/PhpJsCalendar]:https://github.com/iCalcreator/PhpJsCalendar/issues
 [paypal.me/kigkonsult]:https://paypal.me/kigkonsult
+[propClassList]:docs/propClassList.md
 [rfc5545]:https://www.rfc-editor.org/info/rfc5545
 [rfc8984]:https://www.rfc-editor.org/info/rfc8984

@@ -30,9 +30,9 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Vevent;
-use Kigkonsult\Icalcreator\Vtodo;
-use Kigkonsult\Icalcreator\Vcalendar;
+use Kigkonsult\Icalcreator\Vevent      as IcalVevent;
+use Kigkonsult\Icalcreator\Vtodo       as IcalVtodo;
+use Kigkonsult\Icalcreator\Vcalendar   as IcalVcalendar;
 use Kigkonsult\PhpJsCalendar\Dto\Group as GroupDto;
 use Kigkonsult\PhpJsCalendar\Dto\Event as EventDto;
 use Kigkonsult\PhpJsCalendar\Dto\Task  as TaskDto;
@@ -40,69 +40,69 @@ use Kigkonsult\PhpJsCalendar\Dto\Task  as TaskDto;
 abstract class BaseGroupEventTask extends BaseIcal
 {
     /**
-     * Ical Group|Event|Task common properties to Vcalendar|Vevent|Vtodo
+     * Group|Event|Task common properties to Vcalendar|Vevent|Vtodo
      *
      * @param GroupDto|EventDto|TaskDto $dto
-     * @param Vcalendar|Vevent|Vtodo $iCal
+     * @param IcalVcalendar|IcalVevent|IcalVtodo $iCalComp
      * @throws Exception
      */
-    protected static function groupEventTaskProcessTo(
+    protected static function groupEventTaskProcessToIcal(
         GroupDto|EventDto|TaskDto $dto,
-        Vcalendar|Vevent|Vtodo $iCal
+        IcalVcalendar|IcalVevent|IcalVtodo $iCalComp
     ) : void
     {
-        $isVeventVtodo = ! $iCal instanceof Vcalendar;
+        $isVeventVtodo = ! $iCalComp instanceof IcalVcalendar;
         $value = $dto->getUid();
         if( ! empty( $value )) {
-            $iCal->setUid( $value);
+            $iCalComp->setUid( $value);
         }
 
         if( $dto->isCreatedSet()) {
             if( $isVeventVtodo ) {
-                $iCal->setCreated( $dto->getCreated());
+                $iCalComp->setCreated( $dto->getCreated());
             }
             else {
-                $iCal->setXprop( self::setXPrefix( self::CREATED ), $dto->getCreated( true ));
+                $iCalComp->setXprop( self::setXPrefix( self::CREATED ), $dto->getCreated( true ));
             }
         }
 
         if( $dto->isUpdatedSet()) {
-            $iCal->setLastModified( $dto->getUpdated());
+            $iCalComp->setLastModified( $dto->getUpdated());
         }
 
         $params = [];
         if( $dto->isLocaleSet()) {
-            $params[Vcalendar::LANGUAGE] = $dto->getLocale();
+            $params[iCalVcalendar::LANGUAGE] = $dto->getLocale();
         }
         if( $dto->isTitleSet()) {
             $value = $dto->getTitle();
             if( $isVeventVtodo ) {
-                $iCal->setSummary( $value, $params );
+                $iCalComp->setSummary( $value, $params );
             }
             else {
-                $iCal->setName( $value, $params );
+                $iCalComp->setName( $value, $params );
             }
         }
 
         if( $dto->isColorSet()) {
-            $iCal->setColor( $dto->getColor());
+            $iCalComp->setColor( $dto->getColor());
         }
 
         // array of "String[Boolean]"
         if(  ! empty( $dto->getCategoriesCount())) {
             foreach( array_keys( $dto->getCategories()) as $category ) {
-                $iCal->setCategories( $category, $params );
+                $iCalComp->setCategories( $category, $params );
             }
         }
 
         // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA
         if( ! empty( $dto->getLinksCount())) {
-            Link::processLinksTo( $dto->getLinks(), $iCal );
+            Link::processLinksToIcal( $dto->getLinks(), $iCalComp );
         }
 
         // array of "String[Boolean]"
         if( ! empty( $dto->getKeywordsCount())) {
-            $iCal->setXprop(
+            $iCalComp->setXprop(
                 self::setXPrefix( self::KEYWORDS ),
                 implode( self::$itemSeparator, array_keys( $dto->getKeywords()))
             );
@@ -112,43 +112,43 @@ abstract class BaseGroupEventTask extends BaseIcal
     /**
      * Ical Vcalendar|Vevent|Vtodo properties to Group|Event|Task
      *
-     * @param Vcalendar|Vevent|Vtodo $iCal
+     * @param IcalVcalendar|IcalVevent|IcalVtodo $iCalComp
      * @param GroupDto|EventDto|TaskDto $dto
      * @return void
      * @throws Exception
      */
-    protected static function groupEventTaskProcessFrom(
-        Vcalendar|Vevent|Vtodo $iCal,
+    protected static function groupEventTaskProcessFromIcal(
+        IcalVcalendar|IcalVevent|IcalVtodo $iCalComp,
         GroupDto|EventDto|TaskDto $dto
     ) : void
     {
-        $isVcalendar = $iCal instanceof Vcalendar;
-        $dto->setUid( $iCal->getUid());
+        $isVcalendar = $iCalComp instanceof IcalVcalendar;
+        $dto->setUid( $iCalComp->getUid());
 
         $key = self::setXPrefix( self::CREATED );
-        if( $isVcalendar && $iCal->isXpropSet( $key )) {
-            $dto->setCreated( $iCal->getXprop( $key )[1] );
+        if( $isVcalendar && $iCalComp->isXpropSet( $key )) {
+            $dto->setCreated( $iCalComp->getXprop( $key )[1] );
         }
-        elseif( ! $isVcalendar && $iCal->isCreatedSet()) {
-            $dto->setCreated( $iCal->getCreated());
+        elseif( ! $isVcalendar && $iCalComp->isCreatedSet()) {
+            $dto->setCreated( $iCalComp->getCreated());
         }
-        if( $iCal->isLastmodifiedSet()) {
-            $dto->setUpdated( $iCal->getLastmodified());
+        if( $iCalComp->isLastmodifiedSet()) {
+            $dto->setUpdated( $iCalComp->getLastmodified());
         }
 
         $locale = null;
-        if( ! $isVcalendar && $iCal->isSummarySet()) {
-            $value = $iCal->getSummary( true );
-            $dto->setTitle( $value->value );
-            if( $value->hasParamKey( Vcalendar::LANGUAGE )) {
-                $locale= $value->getParams( Vcalendar::LANGUAGE );
+        if( ! $isVcalendar && $iCalComp->isSummarySet()) {
+            $summary = $iCalComp->getSummary( true );
+            $dto->setTitle( $summary->getValue());
+            if( $summary->hasParamKey( iCalVcalendar::LANGUAGE )) {
+                $locale= $summary->getParams( iCalVcalendar::LANGUAGE );
             }
         }
-        elseif( $isVcalendar && $iCal->isNameSet())  {
-            $value = $iCal->getName( null, true ); // accept first only
-            $dto->setTitle( $value->value );
-            if( $value->hasParamKey( Vcalendar::LANGUAGE )) {
-                $locale = $value->getParams( Vcalendar::LANGUAGE );
+        elseif( $isVcalendar && $iCalComp->isNameSet())  {
+            $name = $iCalComp->getName( null, true ); // accept first only
+            $dto->setTitle( $name->getValue());
+            if( $name->hasParamKey( iCalVcalendar::LANGUAGE )) {
+                $locale = $name->getParams( iCalVcalendar::LANGUAGE );
             }
         }
 
@@ -156,24 +156,26 @@ abstract class BaseGroupEventTask extends BaseIcal
             $dto->setLocale( $locale );
         }
 
-        while( false !== ( $value = $iCal->getCategories())) {
+        foreach( $iCalComp->getAllCategories() as $value ) {
             $dto->addCategory( $value, true );
         }
 
-        if( $iCal->isColorSet()) {
-            $dto->setColor( $iCal->getColor());
+        if( $iCalComp->isColorSet()) {
+            $dto->setColor( $iCalComp->getColor());
         }
 
-        if( ! $isVcalendar && $iCal->isCreatedSet()) {
-            $dto->setCreated( $iCal->getCreated());
+        if( ! $isVcalendar && $iCalComp->isCreatedSet()) {
+            $dto->setCreated( $iCalComp->getCreated());
         }
 
         // iCal IMAGE + STRUCTURED_DATA to links
-        Link::processLinksFrom( $iCal, $dto );
+        Link::processLinksFromIcal( $iCalComp, $dto );
 
         $keywordKey = self::setXPrefix( self::KEYWORDS );
-        if( $iCal->isXpropSet( $keywordKey )) {
-            $dto->setKeywords( explode( self::$itemSeparator, $iCal->getXprop( $keywordKey )[1] ) );
+        if( $iCalComp->isXpropSet( $keywordKey )) {
+            $dto->setKeywords(
+                explode( self::$itemSeparator, $iCalComp->getXprop( $keywordKey )[1] )
+            );
         }
     }
 }

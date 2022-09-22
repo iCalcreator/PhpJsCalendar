@@ -61,10 +61,10 @@ trait TimeZoneTrait
     }
 
     /**
-     * @param null|string $timeZone
+     * @param string $timeZone
      * @return static
      */
-    public function setTimeZone( ? string $timeZone ) : static
+    public function setTimeZone( string $timeZone ) : static
     {
         $this->timeZone = $timeZone;
         return $this;

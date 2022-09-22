@@ -145,7 +145,7 @@ final class Event extends BaseEventTask
         null|string|DateTimeInterface $start = null,
         null|string|DateInterval $duration = null,
         null|string $title = null
-    ) : static
+    ) : Event
     {
         $instance = new self();
         if( null!== $start ) {
@@ -197,7 +197,7 @@ final class Event extends BaseEventTask
      * @return static
      * @throws Exception
      */
-    public function setDuration( string | DateInterval $duration ) : static
+    public function setDuration( string | DateInterval $duration ) : Event
     {
         $this->duration = $duration instanceof DateInterval
             ? $duration
@@ -244,10 +244,10 @@ final class Event extends BaseEventTask
     }
 
     /**
-     * @param null|string $status
+     * @param string $status
      * @return static
      */
-    public function setStatus( ? string $status ) : static
+    public function setStatus( string $status ) : Event
     {
         $this->status = $status;
         return $this;

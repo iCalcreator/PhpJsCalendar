@@ -154,16 +154,19 @@ abstract class BaseEventTask extends BaseGroupEventTask
         $dto->setSentBy( $faker->email());
         $dto->setSequence(  $faker->randomNumber());
 
-        $dto->setShowWithoutTime((1 === $faker->numberBetween( 0, 1 )));
-        $startDateTime = $faker->dateTimeBetween( '+2 month', '+6 month' );
+        $showWithoutTime = ( 1 === $faker->numberBetween( 0, 1 ));
+        $dto->setShowWithoutTime( $showWithoutTime );
+        $startDateTime   = $faker->dateTimeBetween( '+2 month', '+6 month' );
         $dto->setStart( $startDateTime );
 
-        $timezonName  = $faker->timezone();
-        $dto->setTimeZone( $timezonName );
         $timezonNames = $dto->getLocationsTimezones();
-        if( ! in_array( $timezonName, $timezonNames, true )) {
-            $timezonNames[] = $timezonName;
-        }
+        if( ! $showWithoutTime ) {
+            $timezonName = $faker->timezone();
+            $dto->setTimeZone( $timezonName );
+            if( ! in_array( $timezonName, $timezonNames, true )) {
+                $timezonNames[] = $timezonName;
+            }
+        } // endif
         foreach( $timezonNames as $timezonName ) {
             $dto->addTimeZone( $timezonName, TimeZone::load( $timezonName ));
         }

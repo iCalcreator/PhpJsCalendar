@@ -46,7 +46,7 @@ class NDay extends BaseJson
             $dto->setDay( $jsonArray[self::DAY] );
         }
         if( isset( $jsonArray[self::NTHOFPERIOD] )) {
-            $dto->setNthOfPeriod( $jsonArray[self::NTHOFPERIOD] );
+            $dto->setNthOfPeriod((int) $jsonArray[self::NTHOFPERIOD] );
         }
         return $dto;
     }
@@ -57,7 +57,7 @@ class NDay extends BaseJson
      * Ordered as in rfc8984
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

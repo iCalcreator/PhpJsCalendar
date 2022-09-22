@@ -1,0 +1,4 @@
+0.9.1 relaseNotes
+
+0.9.2 iCalcreator 2.49.57 adapt
+0.9.3 major code clean up

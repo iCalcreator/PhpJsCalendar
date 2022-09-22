@@ -48,7 +48,7 @@ class RecurrenceRule extends BaseJson
             $dto->setFrequency( $jsonArray[self::FREQUENCY] );
         }
         if( isset( $jsonArray[self::INTERVAL] )) {
-            $dto->setInterval( $jsonArray[self::INTERVAL] );
+            $dto->setInterval((int) $jsonArray[self::INTERVAL] );
         }
         if( isset( $jsonArray[self::RSCALE] )) {
             $dto->setRscale( $jsonArray[self::RSCALE] );
@@ -71,41 +71,41 @@ class RecurrenceRule extends BaseJson
         }
         if( isset( $jsonArray[self::BYMONTHDAY] )) {
             foreach( $jsonArray[self::BYMONTHDAY] as $monthDay ) {
-                $dto->addByMonthDay( $monthDay );
+                $dto->addByMonthDay((int) $monthDay );
             }
         }
         if( isset( $jsonArray[self::BYYEARDAY] )) {
             foreach( $jsonArray[self::BYYEARDAY] as $yearDay ) {
-                $dto->addByYearDay( $yearDay );
+                $dto->addByYearDay((int) $yearDay );
             }
         }
         if( isset( $jsonArray[self::BYWEEKNO] )) {
             foreach( $jsonArray[self::BYWEEKNO] as $weekNo ) {
-                $dto->addByWeekNo( $weekNo );
+                $dto->addByWeekNo((int) $weekNo );
             }
         }
         if( isset( $jsonArray[self::BYHOUR] )) {
             foreach( $jsonArray[self::BYHOUR] as $hour ) {
-                $dto->addByHour( $hour );
+                $dto->addByHour((int) $hour );
             }
         }
         if( isset( $jsonArray[self::BYMINUTE] )) {
             foreach( $jsonArray[self::BYMINUTE] as $minute ) {
-                $dto->addByMinute( $minute );
+                $dto->addByMinute((int) $minute );
             }
         }
         if( isset( $jsonArray[self::BYSECOND] )) {
             foreach( $jsonArray[self::BYSECOND] as $second ) {
-                $dto->addBySecond( $second );
+                $dto->addBySecond((int) $second );
             }
         }
         if( isset( $jsonArray[self::BYSETPOSITION] )) {
             foreach( $jsonArray[self::BYSETPOSITION] as $setByPos ) {
-                $dto->addBySetPosition( $setByPos );
+                $dto->addBySetPosition((int) $setByPos );
             }
         }
         if( isset( $jsonArray[self::COUNT] )) {
-            $dto->setCount( $jsonArray[self::COUNT] );
+            $dto->setCount((int) $jsonArray[self::COUNT] );
         }
         if( isset( $jsonArray[self::UNTIL] )) {
             $dto->setUntil( $jsonArray[self::UNTIL] );
@@ -119,7 +119,7 @@ class RecurrenceRule extends BaseJson
      * Ordered as in rfc8984
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

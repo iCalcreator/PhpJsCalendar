@@ -31,6 +31,7 @@ namespace Kigkonsult\PhpJsCalendar;
 
 use DateTime;
 use Faker;
+use InvalidArgumentException;
 use Kigkonsult\PhpJsCalendar\Dto\Alert;
 use Kigkonsult\PhpJsCalendar\Dto\Event;
 use Kigkonsult\PhpJsCalendar\Dto\Group;
@@ -40,6 +41,8 @@ use Kigkonsult\PhpJsCalendar\Dto\OffsetTrigger;
 use Kigkonsult\PhpJsCalendar\Dto\Participant;
 use Kigkonsult\PhpJsCalendar\Dto\PatchObject;
 use Kigkonsult\PhpJsCalendar\Dto\RecurrenceRule;
+use Kigkonsult\PhpJsCalendar\Dto\Relation;
+use Kigkonsult\PhpJsCalendar\Dto\Task;
 use Kigkonsult\PhpJsCalendar\Dto\TimeZone;
 use Kigkonsult\PhpJsCalendar\Dto\TimeZoneRule;
 use Kigkonsult\PhpJsCalendar\Dto\VirtualLocation;
@@ -80,6 +83,11 @@ class MiscTest extends TestCase
 
         $this->assertSame( Event::$durationDefault,         $event2->getDuration( true, true ));
         $this->assertSame( Event::$statusDefault,           $event2->getStatus( true ));
+
+        $this->assertsame(
+            null,
+            $event2->getDuration()
+        );
 
         $this->assertsame(
             'P1W',
@@ -147,7 +155,6 @@ class MiscTest extends TestCase
         $this->assertNotEmpty(
             $event2->setAlerts( $event1->getAlerts())->getAlerts()
         );
-
     }
 
     /**
@@ -192,6 +199,22 @@ class MiscTest extends TestCase
         $this->assertNotEmpty(
             $group2->setEntries( $group1->getEntries())->getEntries()
         );
+
+        $task   = Task::factory( null, new DateTime( '20220828T151515' ), 'PT2H' );
+        $this->assertFalse( $task->isStartSet());
+        $this->assertTrue( $task->isDueSet());
+        $this->assertTrue( $task->isestimatedDurationSet());
+        $group3 = Group::factory()
+           ->addEntry( $task );
+
+        $this->assertSame(
+            1,
+            $group3->getEntriesCount()
+        );
+        $this->assertSame(
+            '20220828T131515',
+            $task->getEstimatedStart( false )->format( 'Ymd\THis' )
+        );
     }
 
     /**
@@ -221,6 +244,23 @@ class MiscTest extends TestCase
         $locationTypes[] = 'locationype';
         $this->assertNotEmpty(
             $location2->setLocationTypes( $locationTypes )->getLocationTypes()
+        );
+
+        $location3 = new Location();
+        $location3->setLatLongCoordinates( 1.1, 2.2 );
+        $this->assertSame(
+            'geo:+01.1,+2.2',
+            $location3->getCoordinates()
+        );
+        $location3->setLatLongCoordinates( 0.0, 0.0 );
+        $this->assertSame(
+            'geo:00,0',
+            $location3->getCoordinates()
+        );
+        $location3->setLatLongCoordinates( -0.0, -0.0 );
+        $this->assertSame(
+            'geo:00,0',
+            $location3->getCoordinates()
         );
     }
 
@@ -389,6 +429,47 @@ class MiscTest extends TestCase
                 $recurrenceRule2->setBySetPosition( $recurrenceRule1->getBySetPosition())->getBySetPosition()
             );
         }
+
+        $recurrenceRule3 = new RecurrenceRule();
+        $byWeekNos       = [ 10, 20, 30 ];
+        $recurrenceRule3->setByWeekNo( $byWeekNos );
+        $this->assertSame(
+            $byWeekNos,
+            $recurrenceRule3->getByWeekNo()
+        );
+
+        $recurrenceRule3 = new RecurrenceRule();
+        $byMonthDays     = [ 10, 20, 30 ];
+        $recurrenceRule3->setByMonthDay( $byMonthDays );
+        $this->assertSame(
+            $byWeekNos,
+            $recurrenceRule3->getByMonthDay()
+        );
+
+        $recurrenceRule3 = new RecurrenceRule();
+        $theYearDay      = [ 10, 20, 30 ];
+        $recurrenceRule3->setByYearDay( $theYearDay );
+        $this->assertSame(
+            $theYearDay,
+            $recurrenceRule3->getByYearDay()
+        );
+    }
+
+    /**
+     * Testing Relation setRelation
+     *
+     * @test
+     */
+    public function relationSetRelationTest() : void
+    {
+        $relation = Relation::factoryRelation( 'first' )->setRelation( [ 'second' => true ] );
+        $this->assertSame(
+            [
+                'first'  => true,
+                'second' => true,
+            ],
+            $relation->getRelation()
+        );
     }
 
     /**
@@ -451,5 +532,105 @@ class MiscTest extends TestCase
         $features        = $virtualLocation->getFeatures();
         $this->assertArrayHasKey( $feature1, $features );
         $this->assertArrayHasKey( $feature2, $features );
+    }
+
+    /**
+     * unsignedIntTest provider
+     *
+     * @return mixed[]
+     */
+    public function unsignedIntTestProvider() : array
+    {
+        $dataArr = [];
+
+        $dataArr[] = [
+            1,
+            Link::class,
+            'setSize'
+        ];
+
+        $dataArr[] = [
+            2,
+            Event::class,
+            'setSequence'
+        ];
+
+        $dataArr[] = [
+            3,
+            Participant::class,
+            'setPercentComplete'
+        ];
+
+        $dataArr[] = [
+            4,
+            Participant::class,
+            'setScheduleSequence'
+        ];
+
+        $dataArr[] = [
+            5,
+            RecurrenceRule::class,
+            'setCount'
+        ];
+
+        $dataArr[] = [
+            6,
+            RecurrenceRule::class,
+            'setInterval'
+        ];
+
+        $dataArr[] = [
+            7,
+            Task::class,
+            'setSequence'
+        ];
+
+        $dataArr[] = [
+            8,
+            Task::class,
+            'setPercentComplete'
+        ];
+
+        $dataArr[] = [
+            9,
+            RecurrenceRule::class,
+            'addByHour'
+        ];
+
+        $dataArr[] = [
+            10,
+            RecurrenceRule::class,
+            'addByMinute'
+        ];
+
+        $dataArr[] = [
+            11,
+            RecurrenceRule::class,
+            'addBySecond'
+        ];
+
+        return $dataArr;
+    }
+
+    /**
+     * Test unsignedInt asserts
+     *
+     * @test
+     * @dataProvider unsignedIntTestProvider
+     * @param int $case
+     * @param string $class
+     * @param string $setMethod
+     */
+    public function unsignedIntTest( int $case, string $class, string $setMethod ): void
+    {
+        $ok = false;
+        try {
+            $iut = new $class();
+            $iut->{$setMethod}( -1 );
+        }
+        catch ( InvalidArgumentException ) {
+            $ok = true;
+        }
+        $this->assertTrue( $ok, 'error in case #' . $case );
     }
 }

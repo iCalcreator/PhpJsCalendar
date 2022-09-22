@@ -29,6 +29,12 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
+use Kigkonsult\Icalcreator\Participant as IcalParticipant;
+use Kigkonsult\Icalcreator\Vcalendar as IcalVcalendar;
+use Kigkonsult\Icalcreator\Vevent as IcalVevent;
+use Kigkonsult\Icalcreator\Vlocation as IcalVlocation;
+use Kigkonsult\Icalcreator\Vtodo as IcalVtodo;
+
 abstract class BaseIcal implements IcalInterface
 {
     /**
@@ -78,7 +84,7 @@ abstract class BaseIcal implements IcalInterface
     }
 
     /**
-     * Return (iCal) X-prefixed string in upper case
+     * Return (iCal) X-prefixed (upper case) string
      *
      * @param string $value
      * @return string
@@ -104,7 +110,7 @@ abstract class BaseIcal implements IcalInterface
     }
 
     /**
-     * Remove leading x-prefix from (strtolower) value
+     * Remove leading x-prefix from (lower case) value
      *
      * @param string $value
      * @return string
@@ -112,5 +118,36 @@ abstract class BaseIcal implements IcalInterface
     public static function unsetXPrefix( string $value ) : string
     {
         return strtolower( self::isXprefixed( $value ) ? substr( $value, 2 ) : $value );
+    }
+
+    /**
+     * Return email without prefix (anycase) 'mailto;
+     *
+     * From Kigkonsult\Icalcreator\Util\CalAddressFactory
+     *
+     * @param string $email
+     * @return string
+     */
+    protected static function removeMailtoPrefix( string $email ) : string
+    {
+        static $MAILTOCOLON = 'mailto:';
+        return ( 0 === strcasecmp( $MAILTOCOLON, substr( $email, 0, 7 )))
+            ? substr( $email, 7 )
+            : $email;
+    }
+
+    /**
+     * Return bool true if iCalComp has property set
+     *
+     * @param IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp
+     * @param string $method
+     * @return bool
+     */
+    protected static function existsAndIsset(
+        IcalParticipant|IcalVcalendar|IcalVevent|IcalVlocation|IcalVtodo $iCalComp,
+        string $method
+    ) : bool
+    {
+        return ( method_exists( $iCalComp, $method ) && $iCalComp->{$method}());
     }
 }

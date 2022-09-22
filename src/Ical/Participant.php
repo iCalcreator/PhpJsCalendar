@@ -31,7 +31,7 @@ namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use ArrayObject;
 use Exception;
-use Kigkonsult\Icalcreator\Util\CalAddressFactory;
+use Kigkonsult\Icalcreator\CalendarComponent as IcalComponent;
 use Kigkonsult\Icalcreator\Participant       as IcalParticipant;
 use Kigkonsult\Icalcreator\Vlocation         as IcalVlocation;
 use Kigkonsult\PhpJsCalendar\Dto\Participant as ParticipantDto;
@@ -39,40 +39,38 @@ use Kigkonsult\PhpJsCalendar\Dto\Participant as ParticipantDto;
 class Participant extends BaseIcal
 {
     /**
-     * Ical Dto Participant properties to ical Participant and Attendee values
+     * Dto Participant properties to ical Participant and Attendee values
      *
      * Ordered as in rfc8984
      *
-     * @param string $id
      * @param ParticipantDto $participantDto
      * @param IcalParticipant $icalParticipant
      * @param string[] $idEmailArr id[email]
      * @param null|IcalVlocation $iCalVlocation
-     * @return mixed[]    Ical Attendee : [ attendeeValue, attendeeParams ]
+     * @return array    Ical Attendee : [ attendeeValue, attendeeParams ]
      * @throws Exception
      */
-    public static function processTo(
-        string          $id,
+    public static function processToIcal(
         ParticipantDto  $participantDto,
         IcalParticipant $icalParticipant,
-        array $idEmailArr,
+        array           $idEmailArr,
         null|IcalVlocation $iCalVlocation
     ) : array
     {
         $attendeeValue  = null;
-        $attendeeParams = [ IcalParticipant::X_PARTICIPANTID => $id ];
-        $icalParticipant->setUid( $id );
+        $attendeeParams = [ IcalParticipant::X_PARTICIPANTID => $icalParticipant->getUid() ];
 
-        $language       = $participantDto->getLanguage();
-        if( ! empty( $language )) {
+        $langParams     = [];
+        if( $participantDto->isLanguageSet()) {
+            $language   = $participantDto->getLanguage();
             $icalParticipant->setXprop( self::setXPrefix( IcalParticipant::LANGUAGE ), $language );
-            $attendeeParams[IcalParticipant::LANGUAGE] = $language;
+            $langParams = [ IcalParticipant::LANGUAGE => $language ];
+            $attendeeParams += $langParams;
         }
 
         if( $participantDto->isNameSet()) {
-            $summaryParams = empty( $language ) ? [] : [ IcalParticipant::LANGUAGE => $language ];
             $value         = $participantDto->getName();
-            $icalParticipant->setSummary( $value, $summaryParams );
+            $icalParticipant->setSummary( $value, $langParams );
             $attendeeParams[IcalParticipant::CN] = $value;
         }
 
@@ -103,7 +101,7 @@ class Participant extends BaseIcal
         if( ! empty( $participantDto->getSendToCount())) {
             $key  = self::setXPrefix( self::METHOD );
             foreach( $participantDto->getSendTo() as $sendToMethod => $uri ) {
-                $uri = CalAddressFactory::removeMailtoPrefix( $uri );
+                $uri = self::removeMailtoPrefix( $uri );
                 if(( ParticipantDto::IMIP !== $sendToMethod ) ||
                     ( empty( $email ) || ( 0 !== strcasecmp( $email, $uri )))) {
                     $icalParticipant->setContact( $uri, [ $key => $sendToMethod ] );
@@ -117,13 +115,17 @@ class Participant extends BaseIcal
             $first = reset( $roles );
             $icalParticipant->setParticipanttype( strtoupper( $first ));
             $attendeeParams[IcalParticipant::ROLE] = $first;
-            $attendeeParams[IcalParticipant::X_PARTICIPANT_TYPE] = strtoupper( implode( self::$itemSeparator, $roles ));
+            $attendeeParams[IcalParticipant::X_PARTICIPANT_TYPE] =
+                strtoupper( implode( self::$itemSeparator, $roles ));
         }
 
         if( null !== $iCalVlocation ) { // one should be ParticipantDto::locationId, if set
             $lid = $iCalVlocation->getUid();
             if( $iCalVlocation->isNameSet()) {
-                $icalParticipant->setLocation( $iCalVlocation->getName(), [ IcalParticipant::X_VLOCATIONID => $lid ] );
+                $icalParticipant->setLocation(
+                    $iCalVlocation->getName(),
+                    [ IcalParticipant::X_VLOCATIONID => $lid ]
+                );
             }
             $icalParticipant->setComponent( $iCalVlocation );
             $attendeeParams[IcalParticipant::X_VLOCATIONID] = $lid;
@@ -193,47 +195,47 @@ class Participant extends BaseIcal
 
         if( $participantDto->isInvitedBySet()) {
             $invitedById = $participantDto->getInvitedBy(); // id to other participant
-            if( self::isFoundInIdEmailArr( $idEmailArr, $invitedById, null, $result )) {
+            if( self::isIdFoundInIdEmailArr( $invitedById, $idEmailArr, $email )) {
                 $key = self::setXPrefix( self::INVITEDBY );
                 $icalParticipant->setXprop(
                     $key,
-                    $result,
+                    $email,
                     [ IcalParticipant::X_PARTICIPANTID => $invitedById ]
                 );
                 $attendeeParams[$key] = $email;
             }
         } // end if
 
-        // array of "Id[Boolean]"  - bunch of id to other participants
+        // array of "Id[Boolean]"  - a number of id to other participants
         if( ! empty( $participantDto->getDelegatedToCount())) {
             foreach( array_keys( $participantDto->getDelegatedTo()) as $x => $particpantId ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, $particpantId, null, $result )) {
-                    $attendeeParams[IcalParticipant::DELEGATED_TO][$x] = $result;
+                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                    $attendeeParams[IcalParticipant::DELEGATED_TO][$x] = $email;
                 }
             }
-        }
+        } // end if
 
-        // array of "Id[Boolean]"  - bunch of id to other participants
+        // array of "Id[Boolean]"  - a number of id to other participants
         if( ! empty( $participantDto->getDelegatedFromCount())) {
             foreach( array_keys( $participantDto->getDelegatedFrom()) as $x => $particpantId ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, $particpantId, null, $result )) {
-                    $attendeeParams[IcalParticipant::DELEGATED_FROM][$x] = $result;
+                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                    $attendeeParams[IcalParticipant::DELEGATED_FROM][$x] = $email;
                 }
             }
-        }
+        } // end if
 
-        // array of "Id[Boolean]"  - bunch of id to other participants
+        // array of "Id[Boolean]"  - a number of id to other participants
         if( ! empty( $participantDto->getMemberOfCount())) {
             foreach( array_keys( $participantDto->getMemberOf()) as $x => $particpantId ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, $particpantId, null, $result )) {
-                    $attendeeParams[IcalParticipant::MEMBER][$x] = $result;
+                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                    $attendeeParams[IcalParticipant::MEMBER][$x] = $email;
                 }
             }
-        }
+        } // end if
 
-        // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA
+        // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA/URL
         if( ! empty( $participantDto->getLinksCount())) {
-            Link::processLinksTo( $participantDto->getLinks(), $icalParticipant );
+            Link::processLinksToIcal( $participantDto->getLinks(), $icalParticipant );
         }
 
         if( $participantDto->isProgressSet()) {
@@ -261,33 +263,46 @@ class Participant extends BaseIcal
     }
 
     /**
-     * Return bool true if id/email found in isEmailArr then email/id hit will set result, otherwise false
+     * Return bool true if id found in isEmailArr then found email will upd result, otherwise false
      *
-     * @param string[] $idEmailArr     Participant::uid[email]
-     * @param string|null $id
-     * @param string|null $email       strtolower compare
-     * @param null|string $result
+     * @param string $id
+     * @param array $idEmailArr
+     * @param string|null $result
      * @return bool
      */
-    private static function isFoundInIdEmailArr(
+    public static function isIdFoundInIdEmailArr(
+        string $id,
         array $idEmailArr,
-        ? string $id = null,
-        ? string $email = null,
         ? string & $result = null
     ) : bool
     {
         $result = null;
-        if( null !== $id ) {
-            if( isset( $idEmailArr[$id] )) {
-                $result = $idEmailArr[$id];
-                return true;
-            }
-            return false;
-        } // end if
+        if( isset( $idEmailArr[$id] )) {
+            $result = $idEmailArr[$id];
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Return bool true if email found in isEmailArr then found id hit will upd result, otherwise false
+     *
+     * @param string   $email       strtolower compare
+     * @param string[] $idEmailArr  Participant::uid => email
+     * @param null|string $result
+     * @return bool
+     */
+    public static function isEmailFoundInIdEmailArr(
+        string $email,
+        array $idEmailArr,
+        ? string & $result = null
+    ) : bool
+    {
+        $result = null;
         if( null === $email ) {
             return false;
         }
-        $email = strtolower( CalAddressFactory::removeMailtoPrefix( $email ));
+        $email = strtolower( self::removeMailtoPrefix( $email ));
         foreach( $idEmailArr as $id2 => $email2 ) {
             if( strtolower( $email2 ) === $email ) {
                 $result = (string) $id2;
@@ -300,14 +315,14 @@ class Participant extends BaseIcal
     /**
      * Ical Vevent|Vtodo Participant properties to Participant, also from Vevent|Vtodo Attendee (params:same value+uid)
      *
-     * @param IcalParticipant $icalParticipant
+     * @param IcalComponent|IcalParticipant $icalParticipant
      * @param string[] $attendeeParams
      * @param string[] $idEmailArr
-     * @return mixed[]   [ id, Participant, vLocations ]
+     * @return array   [ id, Participant, vLocations ]
      * @throws Exception
      */
-    public static function processFrom(
-        IcalParticipant $icalParticipant,
+    public static function processFromIcal(
+        IcalComponent|IcalParticipant $icalParticipant,
         array $attendeeParams,
         array $idEmailArr
     ) : array
@@ -330,7 +345,7 @@ class Participant extends BaseIcal
         $email = null;
         if( $icalParticipant->isCalendaraddressSet()) {
             $calAddress = $icalParticipant->getCalendaraddress( true );
-            $email      = CalAddressFactory::removeMailtoPrefix( $calAddress->value );
+            $email      = self::removeMailtoPrefix( $calAddress->getValue());
             $participantDto->setEmail( $email );
             $key        = self::setXPrefix( ParticipantDto::KIND );
             if( $calAddress->hasParamKey( $key )) {
@@ -343,20 +358,18 @@ class Participant extends BaseIcal
             $participantDto->setDescription( $icalParticipant->getDescription());
         }
 
-        if( $icalParticipant->isContactSet()) {
-            $key = self::setXPrefix( self::METHOD );
-            while( false !== ( $contact = $icalParticipant->getContact( null, true ))) {
-                $sendToMethod = match ( true ) {
-                    $contact->hasParamKey( $key ) => $contact->getParams( $key ),
-                    filter_var( $contact->value, FILTER_VALIDATE_URL ) => ParticipantDto::IMIP,
-                    default => ParticipantDto::OTHER
-                };
-                if(( ParticipantDto::IMIP !== $sendToMethod ) ||
-                    ( 0 !== strcasecmp( $email, $contact->value ))) {
-                    $participantDto->addSendTo( $sendToMethod, $contact->value );
-                }
-            } // end while
-        } // end if
+        $key = self::setXPrefix( self::METHOD );
+        foreach( $icalParticipant->getAllContact( true ) as $contact ) {
+            $sendToMethod = match ( true ) {
+                $contact->hasParamKey( $key ) => $contact->getParams( $key ),
+                filter_var( $contact->getValue(), FILTER_VALIDATE_URL ) => ParticipantDto::IMIP,
+                default => ParticipantDto::OTHER
+            };
+            if(( ParticipantDto::IMIP !== $sendToMethod ) ||
+                ( 0 !== strcasecmp( $email, $contact->getValue()))) {
+                $participantDto->addSendTo( $sendToMethod, $contact->getValue());
+            }
+        } // end foreach
 
         if( $icalParticipant->isParticipanttypeSet()) {
             $participantDto->addRole( $icalParticipant->getParticipanttype());
@@ -365,22 +378,14 @@ class Participant extends BaseIcal
         // Vlocations // location
         $vLocations    = [];
         $locationNames = [];
-        $icalParticipant->resetCompCounter();
-        while( false !== ( $iCalVlocation = $icalParticipant->getComponent( IcalParticipant::VLOCATION ))) {
-            $lid              = $iCalVlocation->getUid();
-            $vLocations[$lid] = $iCalVlocation;
-            if( $iCalVlocation->isNameSet()) {
-                $locationName = $iCalVlocation->getName();
-                if( ! in_array( $locationName, $locationNames, true ) ) {
-                    $locationNames[] = $locationName;
-                }
-            }
+        foreach( $icalParticipant->getComponents( IcalParticipant::VLOCATION ) as $iCalVlocation ) {
+            $lid = self::processIcalVlocation( $iCalVlocation, $vLocations, $locationNames );
             if( ! $participantDto->isLocationIdSet()) {
                 $participantDto->setLocationId( $lid );
                 unset( $attendeeParams[IcalParticipant::X_VLOCATIONID] );
             }
-        } // end while
-        while( false !== ( $location = $icalParticipant->getLocation( null, true ))) {
+        } // end foreach
+        foreach( $icalParticipant->getAllLocation( true ) as $location ) {
             switch( true ) {
                 case $location->hasParamKey( IcalParticipant::X_VLOCATIONID ) :
                     $lid  = $location->getParams( IcalParticipant::X_VLOCATIONID );
@@ -393,7 +398,7 @@ class Participant extends BaseIcal
                         $vLocations[$lid] = $iCalVlocation;
                     }
                     break;
-                case in_array( strtolower( $location->value ), $locationNames, true ) :
+                case in_array( strtolower( $location->getValue()), $locationNames, true ) :
                     // already found as Vlocation (name), skip
                     continue 2;
                 default :
@@ -402,13 +407,13 @@ class Participant extends BaseIcal
                     $vLocations[$lid] = $iCalVlocation;
                     break;
             } // end switch
-            $locationNames[]  = strtolower( $location->value );
-            $iCalVlocation->setName( $location->value );
+            $locationNames[]  = strtolower( $location->getValue());
+            $iCalVlocation->setName( $location->getValue());
             if( ! $participantDto->isLocationIdSet()) {
                 $participantDto->setLocationId( $lid );
                 unset( $attendeeParams[IcalParticipant::X_VLOCATIONID] );
             }
-       } // end while
+       } // end foreach
 
         if( $icalParticipant->isStatusSet()) {
             $participantDto->setParticipationStatus( $icalParticipant->getStatus());
@@ -423,12 +428,13 @@ class Participant extends BaseIcal
         $key   = self::setXPrefix( self::INVITEDBY ); // got email, id expected
         if( $icalParticipant->isXpropSet( $key ))  {
             $xProp = $icalParticipant->getXprop( $key, null, true );
-            if( isset( $xProp[1]->value[IcalParticipant::X_PARTICIPANTID] )) {
-                $participantDto->setInvitedBy( $xProp[1]->value[IcalParticipant::X_PARTICIPANTID] );
+            $email = $xProp[1]->getValue();
+            if( isset( $xPropVal[IcalParticipant::X_PARTICIPANTID] )) {
+                $participantDto->setInvitedBy( $xPropVal[IcalParticipant::X_PARTICIPANTID] );
                 unset( $attendeeParams[$key] );
             }
-            elseif( self::isFoundInIdEmailArr( $idEmailArr, null, $xProp[1]->value, $result )) {
-                $participantDto->setInvitedBy( $result );
+            elseif( self::isEmailFoundInIdEmailArr( $email, $idEmailArr, $result )) {
+                $participantDto->setInvitedBy( $result ); // i.e. id
                 unset( $attendeeParams[$key] );
             }
         } // end if
@@ -456,23 +462,47 @@ class Participant extends BaseIcal
             $setMethod = self::getSetmethodName( $key );
             $participantDto->{$setMethod}( $value );
             unset( $attendeeParams[$key2] );
-        }
+        } // end foreach
 
-        while( false !== ( $value = $icalParticipant->getRequeststatus())) {
-            $participantDto->addScheduleStatus( implode( self::$SQ, $value ));
+        foreach( $icalParticipant->getAllRequeststatus() as $recStat ) {
+            $participantDto->addScheduleStatus( implode( self::$SQ, $recStat ));
             unset( $attendeeParams[self::setXPrefix( self::SCHEDULESTATUS )] );
-        }
+        } // end foreach
 
         // iCal IMAGE + STRUCTURED_DATA to links
-        Link::processLinksFrom( $icalParticipant, $participantDto );
+        Link::processLinksFromIcal( $icalParticipant, $participantDto );
 
         // upd from opt attendee params NOT found in Participant
-        self::processFromArray( $attendeeParams, $participantDto, $idEmailArr );
+        self::processFromIcalArray( $attendeeParams, $participantDto, $idEmailArr );
         return [ $id, $participantDto, $vLocations ];
     }
 
     /**
-     * Update Participant Ddo from Ical Vevent|Vtodo Attendee property params
+     * @param IcalComponent|IcalVlocation $iCalVlocation
+     * @param array $vLocations
+     * @param array $locationNames
+     * @return string
+     * @throws Exception
+     */
+    private static function processIcalVlocation(
+        IcalComponent|IcalVlocation $iCalVlocation,
+        array & $vLocations,
+        array & $locationNames
+    ) : string
+    {
+        $lid              = $iCalVlocation->getUid();
+        $vLocations[$lid] = $iCalVlocation;
+        if( $iCalVlocation->isNameSet()) {
+            $locationName = $iCalVlocation->getName();
+            if( ! in_array( $locationName, $locationNames, true )) {
+                $locationNames[] = $locationName;
+            }
+        }
+        return $lid;
+    }
+
+    /**
+     * Update Participant Dto from Ical Vevent|Vtodo Attendee property params
      *
      * Same as above?
      *
@@ -481,7 +511,11 @@ class Participant extends BaseIcal
      * @param string[] $idEmailArr
      * @return void
      */
-    public static function processFromArray( array $params, ParticipantDto $participantDto, array $idEmailArr ) : void
+    public static function processFromIcalArray(
+        array $params,
+        ParticipantDto $participantDto,
+        array $idEmailArr
+    ) : void
     {
         if( empty( $params )) {
             return;
@@ -530,7 +564,7 @@ class Participant extends BaseIcal
 
         $key = self::setXPrefix( self::INVITEDBY ); // have email, expect id
         if( isset( $pao->{$key} ) &&
-            self::isFoundInIdEmailArr( $idEmailArr, null, $pao->{$key}, $result )) {
+            self::isEmailFoundInIdEmailArr( $pao->{$key}, $idEmailArr, $result )) {
             $participantDto->setInvitedBy( $result );
         }
 
@@ -559,33 +593,38 @@ class Participant extends BaseIcal
 
         if( isset( $pao->{IcalParticipant::SENT_BY} )) {
             $participantDto->setSentBy(
-                CalAddressFactory::removeMailtoPrefix( $pao->{IcalParticipant::SENT_BY} )
+                self::removeMailtoPrefix( $pao->{IcalParticipant::SENT_BY} )
             );
         }
 
-        if( isset( $pao->{IcalParticipant::DELEGATED_TO} )) {
-            foreach((array) $pao->{IcalParticipant::DELEGATED_TO} as $email ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, null, $email, $result )) {
-                    $participantDto->addDelegatedTo( $result );
-                }
-            } // end foreach
-        } // end if
+        self::processIcalParamMultiEmail( $pao, $idEmailArr, $participantDto );
+    }
 
-        if( isset( $pao->{IcalParticipant::DELEGATED_FROM} )) {
-            foreach((array) $pao->{IcalParticipant::DELEGATED_FROM} as $email ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, null, $email, $result )) {
-                    $participantDto->addDelegatedFrom( $result );
-                }
-            } // end foreach
-        } // end if
-
-        if( isset( $pao->{IcalParticipant::MEMBER} )) {
-            foreach((array) $pao->{IcalParticipant::MEMBER} as $email ) {
-                if( self::isFoundInIdEmailArr( $idEmailArr, null, $email, $result )) {
-                    $participantDto->addMemberOf( $result );
-                }
-            } // end foreach
-        } // end if
+    /**
+     * @param ArrayObject $pao
+     * @param array $idEmailArr
+     * @param ParticipantDto $participantDto
+     */
+    private static function processIcalParamMultiEmail(
+        ArrayObject $pao,
+        array $idEmailArr,
+        ParticipantDto $participantDto
+    ) : void
+    {
+        static $ICALPARAMMULTIKEYS = [
+            'addDelegatedTo'   => IcalParticipant::DELEGATED_TO,
+            'addDelegatedFrom' => IcalParticipant::DELEGATED_FROM,
+            'addMemberOf'      => IcalParticipant::MEMBER
+        ];
+        foreach( $ICALPARAMMULTIKEYS as $method => $emailKey ) {
+            if( isset( $pao->{$emailKey} ) ) {
+                foreach((array) $pao->{$emailKey} as $email ) {
+                    if( self::isEmailFoundInIdEmailArr( $email, $idEmailArr, $result ) ) {
+                        $participantDto->{$method}( $result );
+                    }
+                } // end foreach
+            } // end if
+        } // end foreach
     }
 
     /**

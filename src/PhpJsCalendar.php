@@ -31,7 +31,9 @@ namespace Kigkonsult\PhpJsCalendar;
 
 use Exception;
 use InvalidArgumentException;
+use Kigkonsult\Icalcreator\CalendarComponent;
 use Kigkonsult\Icalcreator\Vcalendar;
+use Kigkonsult\Icalcreator\Vtimezone;
 use Kigkonsult\PhpJsCalendar\Dto\Event  as EventDto;
 use Kigkonsult\PhpJsCalendar\Dto\Group  as GroupDto;
 use Kigkonsult\PhpJsCalendar\Dto\Task   as TaskDto;
@@ -210,12 +212,12 @@ class PhpJsCalendar implements BaseInterface
      * Transform Dto to Vcalendar
      *
      * @param null|GroupDto|EventDto|TaskDto $dto
-     * @param mixed[] $config  Vcalendar config
+     * @param null|array $config  Vcalendar config
      * @return PhpJsCalendar
      * @throws InvalidArgumentException
      * @throws RuntimeException|Exception
      */
-    public function iCalWrite( null|GroupDto|EventDto|TaskDto $dto = null, array $config = [] ) : PhpJsCalendar
+    public function iCalWrite( null|GroupDto|EventDto|TaskDto $dto = null, ? array $config = [] ) : PhpJsCalendar
     {
         static $ERR1 = 'No DTO exists for convertion to Vcalendar';
         static $ERR2 = 'unknown @type %s, expects %s';
@@ -231,7 +233,7 @@ class PhpJsCalendar implements BaseInterface
         switch( $objectType ) {
             case self::GROUP :
                 try {
-                    $vtimezones = GroupIcalFactory::processTo( $this->dto, $this->vcalendar );
+                    $vtimezones = GroupIcalFactory::processToIcal( $this->dto, $this->vcalendar );
                 }
                 catch( Exception $e ) {
                     throw new RuntimeException( $e->getMessage(), $e->getCode(), $e );
@@ -240,7 +242,7 @@ class PhpJsCalendar implements BaseInterface
             case self::EVENT :
                 GroupIcalFactory::setDtoMethod2Ical( $this->dto, $this->vcalendar );
                 try {
-                    $vtimezones = EventIcalFactory::processTo( $this->dto, $this->vcalendar->newVevent());
+                    $vtimezones = EventIcalFactory::processToIcal( $this->dto, $this->vcalendar->newVevent());
                 }
                 catch( Exception $e ) {
                     throw new RuntimeException( $e->getMessage(), $e->getCode(), $e );
@@ -249,7 +251,7 @@ class PhpJsCalendar implements BaseInterface
             case self::TASK :
                 GroupIcalFactory::setDtoMethod2Ical( $this->dto, $this->vcalendar );
                 try {
-                    $vtimezones = TaskIcalFactory::processTo( $this->dto, $this->vcalendar->newVtodo());
+                    $vtimezones = TaskIcalFactory::processToIcal( $this->dto, $this->vcalendar->newVtodo());
                 }
                 catch( Exception $e ) {
                     throw new RuntimeException( $e->getMessage(), $e->getCode(), $e );
@@ -296,12 +298,7 @@ class PhpJsCalendar implements BaseInterface
         while( false !== ( $component = ( $this->vcalendar->getComponent()))) {
             switch( true ) {
                 case ( Vcalendar::VTIMEZONE === $component->getCompType()) :
-                    if( false !== ( $timezoneId = $component->getTzid())) {
-                        $vtimezones[$timezoneId] = $component;
-                    }
-                    else {
-                        $vtimezones[] = $component; // ??
-                    }
+                    self::processVtimezone( $component, $vtimezones );
                     break;
                 case ( Vcalendar::VEVENT === $component->getCompType()) :
                     $vevents[] = $component;
@@ -317,23 +314,40 @@ class PhpJsCalendar implements BaseInterface
             case $forceGroup : // fall through
             case ( 1 < count( $vevents ) || ( 1 < count( $vtodos ))) : // fall through
             case ( 0 < count( $vevents ) && ( 0 < count( $vtodos ))) :
-                $this->dto = GroupIcalFactory::processFrom( $this->vcalendar, $vtimezones );
+                $this->dto = GroupIcalFactory::processFromIcal( $this->vcalendar, $vtimezones );
                 break;
             case ( 1 === count( $vevents )) :
-                $this->dto = EventIcalFactory::processFrom( reset( $vevents ), $vtimezones );
+                $this->dto = EventIcalFactory::processFromIcal( reset( $vevents ), $vtimezones );
                 if( ! $this->dto->isMethodSet()) {
                     GroupIcalFactory::setIcalMethod2Dto( $this->vcalendar, $this->dto );
                 }
                 break;
             case ( 1 === count( $vtodos )) : // fall through
             default :
-                $this->dto = TaskIcalFactory::processFrom( reset( $vtodos ), $vtimezones );
+                $this->dto = TaskIcalFactory::processFromIcal( reset( $vtodos ), $vtimezones );
                 if( ! $this->dto->isMethodSet()) {
                     GroupIcalFactory::setIcalMethod2Dto( $this->vcalendar, $this->dto );
                 }
                 break;
         } // end switch
         return $this;
+    }
+
+    /**
+     * @param CalendarComponent|Vtimezone $component
+     * @param array $vtimezones
+     */
+    private static function processVtimezone(
+        CalendarComponent|Vtimezone $component,
+        array & $vtimezones
+    ) : void
+    {
+        if( $component->isTzidSet()) {
+            $vtimezones[$component->getTzid()] = $component;
+        }
+        else {
+            $vtimezones[] = $component; // ??
+        }
     }
 
     /**

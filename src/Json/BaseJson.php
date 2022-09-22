@@ -34,7 +34,7 @@ abstract class BaseJson implements JsonInterface
     /**
      * Return bool true if objectArray has key '@type' and objectArray[@type] == objectType
      *
-     * @param mixed[] $objectArray
+     * @param array $objectArray
      * @param string $objectType
      * @return bool
      */
@@ -45,6 +45,16 @@ abstract class BaseJson implements JsonInterface
     }
 
     /**
+     * @var string
+     */
+    protected static string $TRUE  = 'true';
+
+    /**
+     * @var string
+     */
+    protected static string $FALSE = 'false';
+
+    /**
      * Transform Json bool to PHP bool
      *
      * @param mixed $value
@@ -52,22 +62,31 @@ abstract class BaseJson implements JsonInterface
      */
     protected static function jsonBool2Php( mixed $value ) : bool
     {
-        static $true  = 'true';
-        static $false = 'false';
         return match ( true ) {
             is_bool( $value )  => $value,
-            ( 0 === strcasecmp( $true, $value ))  => true,
-            ( 0 === strcasecmp( $false, $value )) => false,
+            ( 0 === strcasecmp( self::$TRUE, $value ))  => true,
+            ( 0 === strcasecmp( self::$FALSE, $value )) => false,
             default            => (bool) $value,
         };
     }
 
     /**
+     * Transform PHP bool to Json bool
+     *
+     * @param bool $bool
+     * @return string
+     */
+    protected static function phpBool2Json( bool $bool ) : string
+    {
+        return ( $bool ? self::$TRUE : self::$FALSE );
+    }
+
+    /**
      * Sort array after master template
      *
-     * @param string[] $master
-     * @param mixed[]  $arrayToSort
-     * @return mixed[]
+     * @param array $master
+     * @param array $arrayToSort
+     * @return array
      */
     protected static function orderElements( array $master, array $arrayToSort ) : array
     {

@@ -109,7 +109,7 @@ final class Alert extends BaseDto
      * @param null|string $action
      * @return static
      */
-    public function setAction( ? string $action ) : static
+    public function setAction( ? string $action ) : Alert
     {
         $this->action = $action;
         return $this;
@@ -147,7 +147,7 @@ final class Alert extends BaseDto
      * @return static
      * @throws Exception
      */
-    public function setAcknowledged( null | string | DateTimeInterface $acknowledged = null ) : static
+    public function setAcknowledged( null | string | DateTimeInterface $acknowledged = null ) : Alert
     {
         $this->acknowledged = self::toUtcDateTime( $acknowledged ?? new DateTime(), false );
         return $this;
@@ -175,7 +175,7 @@ final class Alert extends BaseDto
      * @param AbsoluteTrigger|OffsetTrigger|UnknownTrigger $trigger
      * @return static
      */
-    public function setTrigger( AbsoluteTrigger | OffsetTrigger | UnknownTrigger $trigger ) : static
+    public function setTrigger( AbsoluteTrigger | OffsetTrigger | UnknownTrigger $trigger ) : Alert
     {
         $this->trigger = $trigger;
         return $this;

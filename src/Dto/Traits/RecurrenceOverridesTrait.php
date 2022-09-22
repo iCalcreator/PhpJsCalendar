@@ -38,12 +38,12 @@ trait RecurrenceOverridesTrait
     /**
      * Maps recurrence ids (the date-time produced by the recurrence rule) to the overridden properties of the recurrence instance
      *
-     * @var mixed[]    LocalDateTime[PatchObject]
+     * @var array    LocalDateTime[PatchObject]
      */
     protected array $recurrenceOverrides = [];
 
     /**
-     * @return mixed[]  LocalDateTimeString[PatchObject]
+     * @return array  LocalDateTimeString[PatchObject]
      */
     public function getRecurrenceOverrides() : array
     {

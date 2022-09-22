@@ -69,7 +69,7 @@ final class NDay extends BaseDto
      * @param int|null $nthOfPeriod  int <> 0
      * @return static
      */
-    public static function factoryDay( string $day, ? int $nthOfPeriod = null ) : static
+    public static function factoryDay( string $day, ? int $nthOfPeriod = null ) : NDay
     {
         $instance = new self();
         $instance->setDaY( $day );
@@ -101,7 +101,7 @@ final class NDay extends BaseDto
      * @param string $day
      * @return static
      */
-    public function setDay( string $day ) : static
+    public function setDay( string $day ) : NDay
     {
         $this->day = strtolower( $day );
         return $this;
@@ -129,7 +129,7 @@ final class NDay extends BaseDto
      * @param int $nthOfPeriod   int <> 0
      * @return static
      */
-    public function setNthOfPeriod( int $nthOfPeriod ) : static
+    public function setNthOfPeriod( int $nthOfPeriod ) : NDay
     {
         if( ! empty( $nthOfPeriod )) { // NOT null/zero
             $this->nthOfPeriod = $nthOfPeriod;

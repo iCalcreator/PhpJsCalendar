@@ -41,10 +41,11 @@ class Relation extends BaseDtoLad
      */
     public static function load() : Dto
     {
+        static $RELATIONS = [ 'first', 'next', 'child', 'parent' ];
         $faker = Faker\Factory::create();
         return ( 1 === $faker->randomElement( [ 1, 2 ] ))
-            ? Dto::factoryRelation( $faker->randomElement( [ 'first', 'next', 'child', 'parent' ] ))
+            ? Dto::factoryRelation( $faker->randomElement( $RELATIONS ))
             : ( new Dto )
-                ->setRelation( $faker->randomElements( [ 'first', 'next', 'child', 'parent' ], 2 ));
+                ->setRelation( $faker->randomElements( [ 'first', 'next', 'child', 'parent' ], 1 ), true );
     }
 }

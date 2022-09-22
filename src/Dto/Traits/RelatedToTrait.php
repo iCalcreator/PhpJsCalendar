@@ -37,12 +37,12 @@ trait RelatedToTrait
      * A map of the UIDs of the related events/tasks to information about the relation, optional
      * Or relates this alert to other alerts in the same JSCalendar object
      *
-     * @var mixed[] String[Relation]
+     * @var array String[Relation]
      */
     protected array $relatedTo = [];
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getRelatedTo() : array
     {

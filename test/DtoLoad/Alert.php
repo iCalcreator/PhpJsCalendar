@@ -67,7 +67,7 @@ class Alert extends BaseDtoLad
             default :
                 $dto->setTrigger( UnknownTrigger::load());
                 break;
-        }
+        } // end switch
         ++$triggerNo;
         if( 4 === $triggerNo ) {
             $triggerNo = 1;

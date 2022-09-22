@@ -29,7 +29,6 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
-use DateTime;
 use DateTimeInterface;
 use Exception;
 
@@ -58,7 +57,7 @@ final class AbsoluteTrigger extends BaseDto
      * @return static
      * @throws Exception
      */
-    public static function factoryWhen( DateTimeInterface $when ) : static
+    public static function factoryWhen( DateTimeInterface $when ) : AbsoluteTrigger
     {
         return ( new self())->setWhen( $when );
     }
@@ -91,13 +90,13 @@ final class AbsoluteTrigger extends BaseDto
      * If DateTime, any timezone allowed, converted to UTC DateTime
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $when UTCDateTime
+     * @param string|DateTimeInterface $when UTCDateTime
      * @return static
      * @throws Exception
      */
-    public function setWhen( null|string|DateTimeInterface $when = null ) : static
+    public function setWhen( string|DateTimeInterface $when ) : AbsoluteTrigger
     {
-        $this->when = self::toUtcDateTime( $when ?? new DateTime(), false );
+        $this->when = self::toUtcDateTime( $when, false );
         return $this;
     }
 }

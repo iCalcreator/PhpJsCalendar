@@ -29,7 +29,6 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
-use DateTime;
 use DateTimeInterface;
 use Exception;
 use Kigkonsult\PhpJsCalendar\Dto\Traits\DescriptionTrait;
@@ -68,7 +67,7 @@ final class Participant extends BaseDto
      * The value is a URI for the method specified in the key.
      * Optional
      *
-     * @var mixed[]   String[String]
+     * @var array   String[String]
      */
     private array $sendTo = [];
 
@@ -105,7 +104,7 @@ final class Participant extends BaseDto
      *
      * Mandatory
      *
-     * @var mixed[] String[Boolean]
+     * @var array String[Boolean]
      */
     private array $roles = [];
 
@@ -266,7 +265,7 @@ final class Participant extends BaseDto
      *
      * Optional
      *
-     * @var mixed[]   Id[Boolean]
+     * @var array   Id[Boolean]
      */
     private array $delegatedTo = [];
 
@@ -278,7 +277,7 @@ final class Participant extends BaseDto
      *
      * Optional
      *
-     * @var mixed[]   Id[Boolean]
+     * @var array   Id[Boolean]
      */
     private array $delegatedFrom = [];
 
@@ -291,7 +290,7 @@ final class Participant extends BaseDto
      *
      * Optional
      *
-     * @var mixed[]   Id[Boolean]
+     * @var array   Id[Boolean]
      */
     private array $memberOf = [];
 
@@ -328,7 +327,7 @@ final class Participant extends BaseDto
      * @param string|null $name
      * @return static
      */
-    public static function factory( ? string $email = null, ? string $name = null ) : static
+    public static function factory( ? string $email = null, ? string $name = null ) : Participant
     {
         $instance= new self();
         if( null !== $email ) {
@@ -359,17 +358,17 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $email
+     * @param string $email
      * @return static
      */
-    public function setEmail( ? string $email ) : static
+    public function setEmail( string $email ) : Participant
     {
         $this->email = $email;
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getSendTo() : array
     {
@@ -377,7 +376,7 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getSendToMethods() : array
     {
@@ -397,7 +396,7 @@ final class Participant extends BaseDto
      * @param string $uri
      * @return static
      */
-    public function addSendTo( string $method, string $uri ) : static
+    public function addSendTo( string $method, string $uri ) : Participant
     {
         self::assureOptValuePrefix( $uri, $method );
         $this->sendTo[$method] = $uri;
@@ -410,7 +409,7 @@ final class Participant extends BaseDto
      * @param string[] $sendTo   *(method => uri)
      * @return static
      */
-    public function setSendTo( array $sendTo ) : static
+    public function setSendTo( array $sendTo ) : Participant
     {
         foreach( $sendTo as $method => $theSendTo ) {
             $this->addSendTo( $method, $theSendTo );
@@ -437,17 +436,17 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $kind
+     * @param string $kind
      * @return static
      */
-    public function setKind( ? string $kind ) : static
+    public function setKind( string $kind ) : Participant
     {
         $this->kind = $kind ? strtolower( $kind ) : null;
         return $this;
     }
 
     /**
-     * @return mixed[] String[Boolean]
+     * @return array String[Boolean]
      */
     public function getRoles() : array
     {
@@ -467,20 +466,20 @@ final class Participant extends BaseDto
      * @param null|bool $bool default true
      * @return static
      */
-    public function addRole( string $role, ? bool $bool = true ) : static
+    public function addRole( string $role, ? bool $bool = true ) : Participant
     {
         $this->roles[strtolower( $role )] = $bool;
         return $this;
     }
 
     /**
-     * @param mixed[] $roles  String[Boolean] or string[]
+     * @param array $roles  String[Boolean] or string[]
      * @return static
      */
-    public function setRoles( array $roles ) : static
+    public function setRoles( array $roles ) : Participant
     {
         foreach( $roles as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addRole( $key, $value );
             }
             else {
@@ -509,10 +508,10 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $locationId
+     * @param string $locationId
      * @return static
      */
-    public function setLocationId( ? string $locationId ) : static
+    public function setLocationId( string $locationId ) : Participant
     {
         $this->locationId = $locationId;
         return $this;
@@ -537,10 +536,10 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $language
+     * @param string $language
      * @return static
      */
-    public function setLanguage( ? string $language ) : static
+    public function setLanguage( string $language ) : Participant
     {
         $this->language = $language;
         return $this;
@@ -567,10 +566,10 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $participationStatus
+     * @param string $participationStatus
      * @return static
      */
-    public function setParticipationStatus( ? string $participationStatus ) : static
+    public function setParticipationStatus( string $participationStatus ) : Participant
     {
         $this->participationStatus = strtolower( $participationStatus );
         return $this;
@@ -595,10 +594,10 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $participationComment
+     * @param string $participationComment
      * @return static
      */
-    public function setParticipationComment( ? string $participationComment ) : static
+    public function setParticipationComment( string $participationComment ) : Participant
     {
         $this->participationComment = $participationComment;
         return $this;
@@ -629,7 +628,7 @@ final class Participant extends BaseDto
      * @param bool $expectReply
      * @return static
      */
-    public function setExpectReply( bool $expectReply ) : static
+    public function setExpectReply( bool $expectReply ) : Participant
     {
         $this->expectReply = $expectReply;
         return $this;
@@ -657,10 +656,10 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $scheduleAgent
+     * @param string $scheduleAgent
      * @return static
      */
-    public function setScheduleAgent( ? string $scheduleAgent ) : static
+    public function setScheduleAgent( string $scheduleAgent ) : Participant
     {
         $this->scheduleAgent = strtolower( $scheduleAgent );
         return $this;
@@ -691,7 +690,7 @@ final class Participant extends BaseDto
      * @param bool $scheduleForceSend
      * @return static
      */
-    public function setScheduleForceSend( bool $scheduleForceSend ) : static
+    public function setScheduleForceSend( bool $scheduleForceSend ) : Participant
     {
         $this->scheduleForceSend = $scheduleForceSend;
         return $this;
@@ -722,8 +721,9 @@ final class Participant extends BaseDto
      * @param int $scheduleSequence
      * @return static
      */
-    public function setScheduleSequence( int $scheduleSequence ) : static
+    public function setScheduleSequence( int $scheduleSequence ) : Participant
     {
+        self::assertUnsignedInt( $scheduleSequence, self::SCHEDULESEQUENCE );
         $this->scheduleSequence = $scheduleSequence;
         return $this;
     }
@@ -748,7 +748,7 @@ final class Participant extends BaseDto
      * @param String $scheduleStatus
      * @return static
      */
-    public function addScheduleStatus( string $scheduleStatus ) : static
+    public function addScheduleStatus( string $scheduleStatus ) : Participant
     {
         $this->scheduleStatus[] = $scheduleStatus;
         return $this;
@@ -758,7 +758,7 @@ final class Participant extends BaseDto
      * @param String[] $scheduleStatus
      * @return static
      */
-    public function setScheduleStatus( array $scheduleStatus ) : static
+    public function setScheduleStatus( array $scheduleStatus ) : Participant
     {
         foreach( $scheduleStatus as $scheduleSts ) {
             $this->addScheduleStatus( $scheduleSts );
@@ -794,13 +794,13 @@ final class Participant extends BaseDto
      * If DateTime, any timezone allowed, converted to UTC DateTime
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $scheduleUpdated UTCDateTime
+     * @param string|DateTimeInterface $scheduleUpdated UTCDateTime
      * @return static
      * @throws Exception
      */
-    public function setScheduleUpdated( null | string | DateTimeInterface $scheduleUpdated = null ) : static
+    public function setScheduleUpdated( string | DateTimeInterface $scheduleUpdated ) : Participant
     {
-        $this->scheduleUpdated = self::toUtcDateTime( $scheduleUpdated ?? new DateTime(), false );
+        $this->scheduleUpdated = self::toUtcDateTime( $scheduleUpdated, false );
         return $this;
     }
 
@@ -823,17 +823,17 @@ final class Participant extends BaseDto
     }
 
     /**
-     * @param null|string $invitedBy
+     * @param string $invitedBy
      * @return static
      */
-    public function setInvitedBy( ? string $invitedBy ) : static
+    public function setInvitedBy( string $invitedBy ) : Participant
     {
         $this->invitedBy = $invitedBy;
         return $this;
     }
 
     /**
-     * @return mixed[]  Id[Boolean]
+     * @return array  Id[Boolean]
      */
     public function getDelegatedTo() : array
     {
@@ -853,7 +853,7 @@ final class Participant extends BaseDto
      * @param null|bool $bool
      * @return static
      */
-    public function addDelegatedTo( string $delegatedTo, ? bool $bool = true ) : static
+    public function addDelegatedTo( string $delegatedTo, ? bool $bool = true ) : Participant
     {
         $this->delegatedTo[$delegatedTo] = $bool;
         return $this;
@@ -863,10 +863,10 @@ final class Participant extends BaseDto
      * @param array $delegatedTo  Id[Boolean] or string[]
      * @return static
      */
-    public function setDelegatedTo( array $delegatedTo ) : static
+    public function setDelegatedTo( array $delegatedTo ) : Participant
     {
         foreach( $delegatedTo as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addDelegatedTo( $key, $value );
             }
             else {
@@ -897,7 +897,7 @@ final class Participant extends BaseDto
      * @param null|bool $bool
      * @return static
      */
-    public function addDelegatedFrom( string $delegatedFrom, ? bool $bool = true ) : static
+    public function addDelegatedFrom( string $delegatedFrom, ? bool $bool = true ) : Participant
     {
         $this->delegatedFrom[$delegatedFrom] = $bool;
         return $this;
@@ -907,10 +907,10 @@ final class Participant extends BaseDto
      * @param array $delegatedFrom  Id[Boolean] or string[]
      * @return static
      */
-    public function setDelegatedFrom( array $delegatedFrom ) : static
+    public function setDelegatedFrom( array $delegatedFrom ) : Participant
     {
         foreach( $delegatedFrom as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addDelegatedFrom( $key, $value );
             }
             else {
@@ -941,7 +941,7 @@ final class Participant extends BaseDto
      * @param null|bool $bool
      * @return static
      */
-    public function addMemberOf( string $memberOf, ? bool $bool = true ) : static
+    public function addMemberOf( string $memberOf, ? bool $bool = true ) : Participant
     {
         $this->memberOf[$memberOf] = $bool;
         return $this;
@@ -951,10 +951,10 @@ final class Participant extends BaseDto
      * @param array $memberOf Id[Boolean] or string[]
      * @return static
      */
-    public function setMemberOf( array $memberOf ) : static
+    public function setMemberOf( array $memberOf ) : Participant
     {
         foreach( $memberOf as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addMemberOf( $key, $value );
             }
             else {

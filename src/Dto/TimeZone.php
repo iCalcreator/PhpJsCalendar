@@ -29,7 +29,6 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
-use DateTime;
 use DateTimeInterface;
 use Exception;
 use Kigkonsult\PhpJsCalendar\Dto\Traits\UpdatedTrait;
@@ -65,7 +64,7 @@ final class TimeZone extends BaseDto
     /**
      * The TZID-ALIAS-OF properties from iCalendar, specified in [RFC7808], to a JSON set of aliases optional
      *
-     * @var mixed[]  String[Boolean]
+     * @var array  String[Boolean]
      */
     private array $aliases = [];
 
@@ -114,7 +113,7 @@ final class TimeZone extends BaseDto
      * @param string $tzId
      * @return static
      */
-    public function setTzId( string $tzId ) : static
+    public function setTzId( string $tzId ) : TimeZone
     {
         $this->tzId = $tzId;
         return $this;
@@ -142,7 +141,7 @@ final class TimeZone extends BaseDto
      * @param string $url
      * @return static
      */
-    public function setUrl( string $url ) : static
+    public function setUrl( string $url ) : TimeZone
     {
         $this->url = $url;
         return $this;
@@ -176,18 +175,18 @@ final class TimeZone extends BaseDto
      * If DateTime, any timezone allowed, converted to UTC DateTime
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $validUntil UTCDateTime
+     * @param string|DateTimeInterface $validUntil UTCDateTime
      * @return static
      * @throws Exception
      */
-    public function setValidUntil( null|string|DateTimeInterface $validUntil ) : static
+    public function setValidUntil( string|DateTimeInterface $validUntil ) : TimeZone
     {
-        $this->validUntil = self::toUtcDateTime( $validUntil ?? new DateTime(), false );
+        $this->validUntil = self::toUtcDateTime( $validUntil, false );
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getAliases() : array
     {
@@ -207,20 +206,20 @@ final class TimeZone extends BaseDto
      * @param null|bool $bool default true
      * @return static
      */
-    public function addAlias( string $alias, ? bool $bool = true ) : static
+    public function addAlias( string $alias, ? bool $bool = true ) : TimeZone
     {
         $this->aliases[$alias] = $bool;
         return $this;
     }
 
     /**
-     * @param array $aliases
+     * @param array $aliases  String[Boolean] or string[]
      * @return static
      */
-    public function setAliases( array $aliases ) : static
+    public function setAliases( array $aliases ) : TimeZone
     {
         foreach( $aliases as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addAlias( $key, $value );
             }
             else {
@@ -250,10 +249,10 @@ final class TimeZone extends BaseDto
      * @param TimeZoneRule $standard
      * @return static
      */
-    public function addStandard( TimeZoneRule $standard ) : static
+    public function addStandard( TimeZoneRule $standard ) : TimeZone
     {
         $this->standard[] = $standard;
-        usort( $this->standard, self::$sortCallback );
+        usort( $this->standard, self::$SORTCALLBACK );
         return $this;
     }
 
@@ -261,7 +260,7 @@ final class TimeZone extends BaseDto
      * @param TimeZoneRule[] $standard
      * @return static
      */
-    public function setStandard( array $standard ) : static
+    public function setStandard( array $standard ) : TimeZone
     {
         foreach( $standard as $theStandard ) {
             $this->addStandard( $theStandard );
@@ -289,10 +288,10 @@ final class TimeZone extends BaseDto
      * @param TimeZoneRule $daylight
      * @return static
      */
-    public function addDaylight( TimeZoneRule $daylight ) : static
+    public function addDaylight( TimeZoneRule $daylight ) : TimeZone
     {
         $this->daylight[] = $daylight;
-        usort( $this->daylight, self::$sortCallback );
+        usort( $this->daylight, self::$SORTCALLBACK );
         return $this;
     }
 
@@ -300,7 +299,7 @@ final class TimeZone extends BaseDto
      * @param TimeZoneRule[] $daylight
      * @return static
      */
-    public function setDaylight( array $daylight ) : static
+    public function setDaylight( array $daylight ) : TimeZone
     {
         foreach( $daylight as $theDaylight ) {
             $this->addDaylight( $theDaylight );
@@ -309,9 +308,9 @@ final class TimeZone extends BaseDto
     }
 
     /**
-     * @var string[]
+     * @var callable
      */
-    private static array $sortCallback = [ __CLASS__, 'timeZoneRuleCmp' ];
+    private static $SORTCALLBACK = [ __CLASS__, 'timeZoneRuleCmp' ];
 
     /**
      * @param TimeZoneRule $a
@@ -320,6 +319,6 @@ final class TimeZone extends BaseDto
      */
     private static function timeZoneRuleCmp( TimeZoneRule $a, TimeZoneRule $b ) : int
     {
-        return strcmp( $a->getStart(), $b->getStart());
+        return strcmp((string) $a->getStart(), (string) $b->getStart());
     }
 }

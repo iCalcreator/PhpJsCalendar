@@ -30,7 +30,6 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
 use DateInterval;
-use DateTime;
 use DateTimeInterface;
 use Exception;
 use Kigkonsult\PhpJsCalendar\Dto\Traits\DateInterval2StringTrait;
@@ -94,14 +93,14 @@ abstract class BaseEventTask extends BaseGroupEventTask
     public static string $freeBusyStatusDefault = 'busy';
 
     /**
-     * @var mixed[]  PatchObject[] ??
+     * @var array  PatchObject[] ??
      */
     protected array $localizations = [];
 
     /**
      * A map of location ids to Location objects, representing locations associated with the object
      *
-     * @var mixed[] Id[Location]
+     * @var array Id[Location]
      */
     protected array $locations = [];
 
@@ -113,7 +112,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     /**
      * A map of participant ids to participants, describing their participation in the calendar object
      *
-     * @var mixed[] Id[Participant]
+     * @var array Id[Participant]
      */
     protected array $participants = [];
 
@@ -227,12 +226,12 @@ abstract class BaseEventTask extends BaseGroupEventTask
     /**
      * Identifies the time zone the object is scheduled in or is null for floating time
      *
-     * @var mixed[] TimeZoneId[TimeZone]
+     * @var array TimeZoneId[TimeZone]
      */
     protected array $timeZones = [];
 
     /**
-     * @var mixed[] Id[VirtualLocation]
+     * @var array Id[VirtualLocation]
      */
     protected array $virtualLocations= [];
 
@@ -251,7 +250,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     public static bool $useDefaultAlertsDefault = false;
 
     /**
-     * @var mixed[]  Id[Alert]
+     * @var array  Id[Alert]
      */
     protected array $alerts = [];
 
@@ -299,10 +298,10 @@ abstract class BaseEventTask extends BaseGroupEventTask
      * Descriptions of type "text/html" MAY contain "cid" URLs [RFC2392] to reference links in the calendar object
      * by use of the "cid" property of the Link object.
      *
-     * @param null|string $descriptionContentType
+     * @param string $descriptionContentType
      * @return static
      */
-    public function setDescriptionContentType( ? string $descriptionContentType ) : static
+    public function setDescriptionContentType( string $descriptionContentType ) : static
     {
         $this->descriptionContentType = $descriptionContentType;
         return $this;
@@ -397,17 +396,17 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @param null|string $freeBusyStatus
+     * @param string $freeBusyStatus
      * @return static
      */
-    public function setFreeBusyStatus( ? string $freeBusyStatus ) : static
+    public function setFreeBusyStatus( string $freeBusyStatus ) : static
     {
         $this->freeBusyStatus = $freeBusyStatus;
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getLocalizations() : array
     {
@@ -446,7 +445,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getLocations() : array
     {
@@ -582,10 +581,10 @@ abstract class BaseEventTask extends BaseGroupEventTask
      * decreasing ordinal priority.  A value of 9 is the lowest priority.
      * Other integer values are reserved for future use.
      *
-     * @param null|int $priority
+     * @param int $priority
      * @return static
      */
-    public function setPriority( ? int $priority ) : static
+    public function setPriority( int $priority ) : static
     {
         $this->priority = $priority;
         return $this;
@@ -656,7 +655,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
      */
     public function setRecurrenceId( string | DateTimeInterface $recurrenceId ) : static
     {
-        $this->recurrenceId = self::toUtcDateTime( $recurrenceId ?? new DateTime());
+        $this->recurrenceId = self::toUtcDateTime( $recurrenceId );
         return $this;
     }
 
@@ -679,17 +678,17 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @param null|string $recurrenceIdTimeZone
+     * @param string $recurrenceIdTimeZone
      * @return static
      */
-    public function setRecurrenceIdTimeZone( ? string $recurrenceIdTimeZone ) : static
+    public function setRecurrenceIdTimeZone( string $recurrenceIdTimeZone ) : static
     {
         $this->recurrenceIdTimeZone = $recurrenceIdTimeZone;
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getReplyTo() : array
     {
@@ -763,10 +762,10 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @param null|string $requestStatus
+     * @param string $requestStatus
      * @return static
      */
-    public function setRequestStatus( ? string $requestStatus ) : static
+    public function setRequestStatus( string $requestStatus ) : static
     {
         $this->requestStatus = $requestStatus;
         return $this;
@@ -794,11 +793,12 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @param null|int $sequence
+     * @param int $sequence
      * @return static
      */
-    public function setSequence( ? int $sequence ) : static
+    public function setSequence( int $sequence ) : static
     {
+        self::assertUnsignedInt( $sequence, self::SEQUENCE );
         $this->sequence = $sequence;
         return $this;
     }
@@ -835,7 +835,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getTimeZones() : array
     {
@@ -875,7 +875,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getVirtualLocations() : array
     {
@@ -951,7 +951,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getAlerts() : array
     {
@@ -1068,8 +1068,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
     protected static function getOptPluralSuffix ( int $number ) : string
     {
         static $PLS = 's';
-        static $SP0 = '';
-        return ( 1 < $number ) ? $PLS : $SP0;
+        return ( 1 < $number ) ? $PLS : self::$SP0;
     }
 
     use DateInterval2StringTrait;

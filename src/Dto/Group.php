@@ -65,7 +65,7 @@ final class Group extends BaseGroupEventTask
     /**
      * Collection of group Event|Task members
      *
-     * @var mixed[]
+     * @var array
      */
     private array $entries = [];
 
@@ -93,7 +93,7 @@ final class Group extends BaseGroupEventTask
      * @return static
      * @throws Exception
      */
-    public static function factory( ? string $title = null ) : static
+    public static function factory( ? string $title = null ) : Group
     {
         $instance = new self();
         if( null !== $title ) {
@@ -103,7 +103,7 @@ final class Group extends BaseGroupEventTask
     }
 
     /**
-     * @return mixed[]   *(Event|Task)
+     * @return array   *(Event|Task)
      */
     public function getEntries() : array
     {
@@ -132,12 +132,9 @@ final class Group extends BaseGroupEventTask
      * @return static
      * @throws Exception
      */
-    public function addEntry( Event|Task $entry ) : static
+    public function addEntry( Event|Task $entry ) : Group
     {
-        $key = '';
-        if( $entry->isStartSet()) {
-            $key .= $entry->getStart();
-        }
+        $key = $entry->isStartSet() ? $entry->getStart() : self::$SP0;
         if( $entry instanceof Event ) {
             if( $entry->isDurationSet()) {
                 $key .= $entry->getDuration();
@@ -163,7 +160,7 @@ final class Group extends BaseGroupEventTask
      * @return static
      * @throws Exception
      */
-    public function setEntries( array $entries ) : static
+    public function setEntries( array $entries ) : Group
     {
         foreach( $entries as $entry ) {
             $this->addEntry( $entry );
@@ -193,7 +190,7 @@ final class Group extends BaseGroupEventTask
      * @param string $source
      * @return static
      */
-    public function setSource( string $source ) : static
+    public function setSource( string $source ) : Group
     {
         $this->source = $source;
         return $this;

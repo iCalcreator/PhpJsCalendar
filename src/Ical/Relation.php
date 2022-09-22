@@ -30,25 +30,25 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Kigkonsult\Icalcreator\Pc;
-use Kigkonsult\Icalcreator\Vcalendar;
+use Kigkonsult\Icalcreator\Vcalendar      as IcalVcalendar;
 use Kigkonsult\PhpJsCalendar\Dto\Relation as RelationDto;
 
 class Relation extends BaseIcal
 {
     /**
-     * Ical Relation property to iCal Relatedto (X-)params, return array
+     * Relation property to iCal Relatedto (X-)params, return array
      *
      * @param RelationDto $relationDto
-     * @return mixed[]   iCal Relatedto params, first one Vcalendar::RELTYPE, the rest x-type => type
+     * @return array   iCal Relatedto params, first one Vcalendar::RELTYPE, the rest x-type => type
      */
-    public static function processTo( RelationDto $relationDto  ) : array
+    public static function processToIcalXparams( RelationDto $relationDto  ) : array
     {
         $params = [];
         // array of String[Boolean]
         if( ! empty( $relationDto->getRelationCount())) {
             foreach( array_keys( $relationDto->getRelation()) as $rix => $relation ) {
-                if( ! isset( $params[Vcalendar::RELTYPE] )) {
-                    $key = Vcalendar::RELTYPE;
+                if( ! isset( $params[IcalVcalendar::RELTYPE] )) {
+                    $key = IcalVcalendar::RELTYPE;
                 }
                 else {
                     $key = self::setXPrefix( $relation ) . $rix;
@@ -63,14 +63,14 @@ class Relation extends BaseIcal
      * Ical Relatedto property to Relation
      *
      * @param Pc $relatedto
-     * @return mixed[]   [ id, Relation ]
+     * @return array   [ id, Relation ]
      */
-    public static function processFrom( Pc $relatedto ) : array
+    public static function processFromIcalRelatedTo( Pc $relatedto ) : array
     {
-        $id          = $relatedto->value;
+        $id          = $relatedto->getValue();
         $relationDto = new RelationDto();
-        $relTypeKey  = strtolower( Vcalendar::RELTYPE );
-        foreach( self::unXPrefixKeys( $relatedto->params ) as $pKey => $pValue ) {
+        $relTypeKey  = strtolower( IcalVcalendar::RELTYPE );
+        foreach( self::unXPrefixKeys( $relatedto->getParams()) as $pKey => $pValue ) {
             if( $relTypeKey === $pKey ) {
                 $relationDto->addRelation( $pValue );
                 continue;

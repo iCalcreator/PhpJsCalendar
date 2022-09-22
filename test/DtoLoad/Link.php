@@ -30,7 +30,7 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\DtoLoad;
 
 use Faker;
-use Kigkonsult\FakerLocRelTypes\Provider\en_US\RelationTypes;
+use Kigkonsult\FakerLocRelTypes\Provider\en_US\Rfc8288RelationTypes;
 use Kigkonsult\PhpJsCalendar\Dto\Link as Dto;
 
 class Link extends BaseDtoLad
@@ -43,17 +43,16 @@ class Link extends BaseDtoLad
     public static function load() : Dto
     {
         $faker = Faker\Factory::create();
-        $faker->addProvider( new RelationTypes( $faker ));
+        $faker->addProvider( new Rfc8288RelationTypes( $faker ));
 
         $linkRelations = [];
         $max   = $faker->randomElement( [ 3, 4] );
         for( $x = 0; $x < $max; $x++ ) {
-            $relType = $faker->relationType();
+            $relType = $faker->rfc8288RelationType();
             $linkRelations[$relType] = $relType;
         }
 
-        $dto   = new Dto();
-        $dto->setHref( $faker->url());
+        $dto   = Dto::factoryHref( $faker->url());
         $dto->setContentType( $faker->mimeType());
         $dto->setSize( $faker->randomNumber( 5, true ));
         $dto->setRel( $faker->randomElement( array_values( $linkRelations )));

@@ -80,7 +80,7 @@ class Participant extends BaseJson
             $dto->setParticipationComment( $jsonArray[self::PARTICIPATIONCOMMENT] );
         }
         if( isset( $jsonArray[self::EXPECTREPLY] )) {
-            $dto->setExpectReply( $jsonArray[self::EXPECTREPLY] );
+            $dto->setExpectReply( self::jsonBool2Php( $jsonArray[self::EXPECTREPLY] ));
         }
         if( isset( $jsonArray[self::SCHEDULEAGENT] )) {
             $dto->setScheduleAgent( $jsonArray[self::SCHEDULEAGENT] );
@@ -89,7 +89,7 @@ class Participant extends BaseJson
             $dto->setScheduleForceSend( self::jsonBool2Php( $jsonArray[self::SCHEDULEFORCESEND] ));
         }
         if( isset( $jsonArray[self::SCHEDULESEQUENCE] )) {
-            $dto->setScheduleSequence( $jsonArray[self::SCHEDULESEQUENCE] );
+            $dto->setScheduleSequence((int) $jsonArray[self::SCHEDULESEQUENCE] );
         }
         if( isset( $jsonArray[self::SCHEDULESTATUS] )) {
             foreach( $jsonArray[self::SCHEDULESTATUS] as $status ) {
@@ -107,17 +107,17 @@ class Participant extends BaseJson
         }
         if( isset( $jsonArray[self::DELEGATEDTO] )) {
             foreach( $jsonArray[self::DELEGATEDTO] as $delegatdTo => $bool) {
-                $dto->addDelegatedTo( $delegatdTo, $bool );
+                $dto->addDelegatedTo( $delegatdTo, ( 'true' === $bool ));
             }
         }
         if( isset( $jsonArray[self::DELEGATEDFROM] )) {
             foreach( $jsonArray[self::DELEGATEDFROM] as $delegatdFrom => $bool ) {
-                $dto->addDelegatedFrom( $delegatdFrom, $bool );
+                $dto->addDelegatedFrom( $delegatdFrom, ( 'true' === $bool ));
             }
         }
         if( isset( $jsonArray[self::MEMBEROF] )) {
             foreach( $jsonArray[self::MEMBEROF] as $memberOf => $bool ) {
-                $dto->addMemberOf( $memberOf, $bool );
+                $dto->addMemberOf( $memberOf, ( 'true' === $bool ));
             }
         }
         if( isset( $jsonArray[self::LINKS] )) {
@@ -132,7 +132,7 @@ class Participant extends BaseJson
             $dto->setProgressUpdated( $jsonArray[self::PROGRESSUPDATED] );
         }
         if( isset( $jsonArray[self::PERCENTCOMPLETE] )) {
-            $dto->setPercentComplete( $jsonArray[self::PERCENTCOMPLETE] );
+            $dto->setPercentComplete((int) $jsonArray[self::PERCENTCOMPLETE] );
         }
         return $dto;
     }
@@ -143,7 +143,7 @@ class Participant extends BaseJson
      * Ordered as in rfc8984
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {
@@ -196,7 +196,7 @@ class Participant extends BaseJson
         }
 
         if( $dto->isExpectReplySet() && $dto->getExpectReply()) { // skip default false
-            $jsonArray[self::EXPECTREPLY] = true;
+            $jsonArray[self::EXPECTREPLY] = self::phpBool2Json( true );
         }
 
         if( $dto->isScheduleAgentSet()) {
@@ -204,7 +204,7 @@ class Participant extends BaseJson
         }
 
         if( $dto->isScheduleForceSendSet() && $dto->getScheduleForceSend()) { // skip default false
-            $jsonArray[self::SCHEDULEFORCESEND] = $dto->getScheduleForceSend();
+            $jsonArray[self::SCHEDULEFORCESEND] = self::phpBool2Json( $dto->getScheduleForceSend());
         }
 
         if( $dto->isScheduleSequenceSet()) {
@@ -231,19 +231,19 @@ class Participant extends BaseJson
         // array of "Id[Boolean]"
         if( ! empty( $dto->getDelegatedToCount())) {
             foreach( $dto->getDelegatedTo() as $x => $bool ) {
-                $jsonArray[self::DELEGATEDTO][$x] = $bool;
+                $jsonArray[self::DELEGATEDTO][$x] = self::phpBool2Json( $bool );
             }
         }
         // array of "Id[Boolean]"
         if( ! empty( $dto->getDelegatedFromCount())) {
             foreach( $dto->getDelegatedFrom() as $x => $bool ) {
-                $jsonArray[self::DELEGATEDFROM][$x] = $bool;
+                $jsonArray[self::DELEGATEDFROM][$x] = self::phpBool2Json( $bool );
             }
         }
         // array of "Id[Boolean]"
         if( ! empty( $dto->getMemberOfCount())) {
             foreach( $dto->getMemberOf() as $x => $bool ) {
-                $jsonArray[self::MEMBEROF][$x] = $bool;
+                $jsonArray[self::MEMBEROF][$x] = self::phpBool2Json( $bool );
             }
         }
         // array of "Id[Link]"

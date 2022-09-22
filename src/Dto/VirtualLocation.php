@@ -72,7 +72,7 @@ final class VirtualLocation extends BaseDto
      *
      * Optional
      *
-     * @var mixed[]    String[Boolean]
+     * @var array    String[Boolean]
      */
     private array $features = [];
 
@@ -92,7 +92,7 @@ final class VirtualLocation extends BaseDto
      * @param string $feature
      * @return static
      */
-    public static function factoryUriFeature( string $uri, string $feature ) : static
+    public static function factoryUriFeature( string $uri, string $feature ) : VirtualLocation
     {
         return ( new self())->setUri( $uri )->addFeature( $feature );
     }
@@ -119,14 +119,14 @@ final class VirtualLocation extends BaseDto
      * @param string $uri
      * @return static
      */
-    public function setUri( string $uri ) : static
+    public function setUri( string $uri ) : VirtualLocation
     {
         $this->uri = $uri;
         return $this;
     }
 
     /**
-     * @return mixed[]
+     * @return array
      */
     public function getFeatures() : array
     {
@@ -146,21 +146,21 @@ final class VirtualLocation extends BaseDto
      * @param null|bool $bool default true
      * @return static
      */
-    public function addFeature( string $feature, ? bool $bool = true ) : static
+    public function addFeature( string $feature, ? bool $bool = true ) : VirtualLocation
     {
         $this->features[$feature] = $bool;
         return $this;
     }
 
     /**
-     * @param array $features
+     * @param array $features  String[Boolean] or string[]
      * @return static
      */
-    public function setFeatures( array $features ) : static
+    public function setFeatures( array $features ) : VirtualLocation
     {
         $this->features = $features;
         foreach( $features as $key => $value ) {
-            if( is_string( $key ) && ! is_numeric( $key ) && is_bool( $value )) {
+            if( self::isStringKeyAndBoolValue( $key, $value )) {
                 $this->addFeature( $key, $value );
             }
             else {

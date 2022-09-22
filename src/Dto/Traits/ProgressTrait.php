@@ -70,10 +70,10 @@ trait ProgressTrait
     }
 
     /**
-     * @param null|string $progress
+     * @param string $progress
      * @return static
      */
-    public function setProgress( ? string $progress ) : static
+    public function setProgress( string $progress ) : static
     {
         $this->progress = $progress ? strtolower( $progress ) : null;
         return $this;

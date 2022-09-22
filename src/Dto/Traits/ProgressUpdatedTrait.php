@@ -29,7 +29,6 @@
 declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto\Traits;
 
-use DateTime;
 use DateTimeInterface;
 use Exception;
 
@@ -72,13 +71,13 @@ trait ProgressUpdatedTrait
      * If DateTime, any timezone allowed, converted to UTC DateTime
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $progressUpdated UTCDateTime
+     * @param string|DateTimeInterface $progressUpdated UTCDateTime
      * @return static
      * @throws Exception
      */
-    public function setProgressUpdated( null | string | DateTimeInterface $progressUpdated = null ) : static
+    public function setProgressUpdated( string | DateTimeInterface $progressUpdated ) : static
     {
-        $this->progressUpdated = self::toUtcDateTime( $progressUpdated ?? new DateTime(), false );
+        $this->progressUpdated = self::toUtcDateTime( $progressUpdated, false );
         return $this;
     }
 }

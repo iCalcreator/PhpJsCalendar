@@ -62,10 +62,10 @@ trait RelativeToTrait
     }
 
     /**
-     * @param null|string $relativeTo
+     * @param string $relativeTo
      * @return static
      */
-    public function setRelativeTo( ? string $relativeTo ) : static
+    public function setRelativeTo( string $relativeTo ) : static
     {
         $this->relativeTo = $relativeTo;
         return $this;

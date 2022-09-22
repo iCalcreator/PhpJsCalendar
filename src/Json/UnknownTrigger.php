@@ -56,7 +56,7 @@ class UnknownTrigger extends BaseJson
      * Write OffsetTrigger Dto properties to json array
      *
      * @param Dto $dto
-     * @return mixed[]
+     * @return array
      */
     public static function write( Dto $dto ) : array
     {

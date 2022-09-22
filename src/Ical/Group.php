@@ -30,26 +30,26 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Vcalendar;
-use Kigkonsult\Icalcreator\Vtimezone;
+use Kigkonsult\Icalcreator\Vcalendar   as IcalVcalendar;
+use Kigkonsult\Icalcreator\Vtimezone   as IcalVtimezone;
 use Kigkonsult\PhpJsCalendar\Dto\Event as EventDto;
 use Kigkonsult\PhpJsCalendar\Dto\Group as GroupDto;
-use Kigkonsult\PhpJsCalendar\Dto\Task as TaskDto;
+use Kigkonsult\PhpJsCalendar\Dto\Task  as TaskDto;
 
 class Group extends BaseGroupEventTask
 {
 
     /**
-     * Ical Group Dto properties to iCal Vcalendar
+     * Group Dto properties to iCal Vcalendar
      *
      * @param GroupDto $dto
-     * @param Vcalendar $vcalendar
-     * @return Vtimezone[]
+     * @param IcalVcalendar $iCalVcalendar
+     * @return IcalVtimezone[]
      * @throws Exception
      */
-    public static function processTo( GroupDto $dto, Vcalendar $vcalendar ) : array
+    public static function processToIcal( GroupDto $dto, IcalVcalendar $iCalVcalendar ) : array
     {
-        parent::groupEventTaskProcessTo( $dto, $vcalendar );
+        parent::groupEventTaskProcessToIcal( $dto, $iCalVcalendar );
 
         // array of "(Task|Event)[]"
         $vtimezones  = [];
@@ -57,16 +57,16 @@ class Group extends BaseGroupEventTask
         if( ! empty( $dto->getEntriesCount())) {
             foreach( $dto->getEntries() as $entry ) {
                 if( ! $isMethodSet ) { // first found
-                    self::setDtoMethod2Ical( $entry, $vcalendar );
+                    self::setDtoMethod2Ical( $entry, $iCalVcalendar );
                     $isMethodSet = true;
                 }
                 if( self::EVENT === $entry->getType()) {
-                    foreach( Event::processTo( $entry, $vcalendar->newVevent()) as $timezoneId => $vtimezone ) {
+                    foreach( Event::processToIcal( $entry, $iCalVcalendar->newVevent()) as $timezoneId => $vtimezone ) {
                         $vtimezones[$timezoneId] = $vtimezone;
                     }
                 }
                 elseif( self::TASK === $entry->getType() ) {
-                    foreach( Task::processTo( $entry, $vcalendar->newVtodo()) as $timezoneId => $vtimezone ) {
+                    foreach( Task::processToIcal( $entry, $iCalVcalendar->newVtodo()) as $timezoneId => $vtimezone ) {
                         $vtimezones[$timezoneId] = $vtimezone;
                     }
                 }
@@ -74,7 +74,7 @@ class Group extends BaseGroupEventTask
         } // end if
 
         if( $dto->isSourceSet()) {
-            $vcalendar->setSource( $dto->getSource());
+            $iCalVcalendar->setSource( $dto->getSource());
         }
 
         return $vtimezones;
@@ -83,62 +83,61 @@ class Group extends BaseGroupEventTask
     /**
      * Ical iCal Vcalendar to new Group
      *
-     * @param Vcalendar $vcalendar
-     * @param Vtimezone[] $vtimezones
+     * @param IcalVcalendar $iCalVcalendar
+     * @param IcalVtimezone[] $iCalVtimezones
      * @return GroupDto
      * @throws Exception
      */
-    public static function processFrom( Vcalendar $vcalendar, array $vtimezones ) : GroupDto
+    public static function processFromIcal( IcalVcalendar $iCalVcalendar, array $iCalVtimezones ) : GroupDto
     {
         $groupDto = new GroupDto();
-        if( $vcalendar->isSourceSet()) {
-            $groupDto->setSource( $vcalendar->getSource());
+        if( $iCalVcalendar->isSourceSet()) {
+            $groupDto->setSource( $iCalVcalendar->getSource());
         }
-        parent::groupEventTaskProcessFrom( $vcalendar, $groupDto );
-        $vcalendar->resetCompCounter();
-        while( false !== ( $component = ( $vcalendar->getComponent()))) {
+        parent::groupEventTaskProcessFromIcal( $iCalVcalendar, $groupDto );
+        $iCalVcalendar->resetCompCounter();
+        foreach( $iCalVcalendar->getComponents()as $component ) {
             switch( true ) {
-                case ( Vcalendar::VEVENT === $component->getCompType()) :
-                    $entry = Event::processFrom( $component, $vtimezones );
+                case ( IcalVcalendar::VEVENT === $component->getCompType()) :
+                    $entry = Event::processFromIcal( $component, $iCalVtimezones );
                     if( ! $entry->isMethodSet()) {
-                        self::setIcalMethod2Dto( $vcalendar, $entry );
+                        self::setIcalMethod2Dto( $iCalVcalendar, $entry );
                     }
                     $groupDto->addEntry( $entry );
                     break;
-                case ( Vcalendar::VTODO === $component->getCompType()) :
-                    $entry = Task::processFrom( $component, $vtimezones );
+                case ( IcalVcalendar::VTODO === $component->getCompType()) :
+                    $entry = Task::processFromIcal( $component, $iCalVtimezones );
                     if( ! $entry->isMethodSet()) {
-                        self::setIcalMethod2Dto( $vcalendar, $entry );
+                        self::setIcalMethod2Dto( $iCalVcalendar, $entry );
                     }
                     $groupDto->addEntry( $entry );
                     break;
                 default:
                     break;
             } // end switch
-        } // end while
-
+        } // end foreach
         return $groupDto;
     }
 
     /**
-     * @param Vcalendar $vcalendar
+     * @param IcalVcalendar $iCalVcalendar
      * @param EventDto|TaskDto $dto
      */
-    public static function setIcalMethod2Dto( Vcalendar $vcalendar, EventDto | TaskDto $dto ) : void
+    public static function setIcalMethod2Dto( IcalVcalendar $iCalVcalendar, EventDto | TaskDto $dto ) : void
     {
-        if( $vcalendar->IsMethodSet()) {
-            $dto->setMethod( $vcalendar->getMethod());
+        if( $iCalVcalendar->IsMethodSet()) {
+            $dto->setMethod( $iCalVcalendar->getMethod());
         }
     }
 
     /**
      * @param EventDto|TaskDto $dto
-     * @param Vcalendar $vcalendar
+     * @param IcalVcalendar $iCalVcalendar
      */
-    public static function setDtoMethod2Ical( EventDto | TaskDto $dto, Vcalendar $vcalendar ) : void
+    public static function setDtoMethod2Ical( EventDto | TaskDto $dto, IcalVcalendar $iCalVcalendar ) : void
     {
         if( $dto->isMethodSet()) {
-            $vcalendar->setMethod( strtoupper( $dto->getMethod()));
+            $iCalVcalendar->setMethod( strtoupper( $dto->getMethod()));
         }
     }
 }

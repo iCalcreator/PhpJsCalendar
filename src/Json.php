@@ -71,13 +71,13 @@ class Json
      *
      * @param array $jsonArray
      * @param null|int $flags   default  JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-     * @return mixed
+     * @return string
      * @throws RuntimeException
      */
     public static function jsonEncode(
         array $jsonArray,
         ? int $flags = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-    ) : mixed
+    ) : string
     {
         try {
             if( false === ( $jsonString = json_encode( $jsonArray, $flags ))) {

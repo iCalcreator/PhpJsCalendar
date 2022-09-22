@@ -30,7 +30,6 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Dto;
 
 use DateInterval;
-use DateTime;
 use DateTimeInterface;
 use Exception;
 use Kigkonsult\PhpJsCalendar\Dto\Traits\PercentCompleteTrait;
@@ -148,7 +147,7 @@ final class Task extends BaseEventTask
         null|string|DateTimeInterface $due = null,
         null|string|DateInterval $duration = null,
         null|string $title = null
-    ) : static
+    ) : Task
     {
         $instance = new self();
         if( null!== $start ) {
@@ -193,13 +192,13 @@ final class Task extends BaseEventTask
      * If DateTime, any timezone allowed, saved as DateTime with input:date[time] with UTC timezone
      * If string (date[time] without timezone!), saved as DateTime with input:date[time] with UTC timezone
      *
-     * @param null|string|DateTimeInterface $due LocalDateTime, saved as DateTime with UTC (note, not 'in' UTC)
+     * @param string|DateTimeInterface $due LocalDateTime, saved as DateTime with UTC (note, not 'in' UTC)
      * @return static
      * @throws Exception
      */
-    public function setDue( null | string | DateTimeInterface $due ) : static
+    public function setDue( string | DateTimeInterface $due ) : Task
     {
-        $this->due = self::toUtcDateTime( $due ?? new DateTime());
+        $this->due = self::toUtcDateTime( $due );
         return $this;
     }
 
@@ -229,7 +228,7 @@ final class Task extends BaseEventTask
      * @return static
      * @throws Exception
      */
-    public function setEstimatedDuration( string|DateInterval $estimatedDuration ) : static
+    public function setEstimatedDuration( string|DateInterval $estimatedDuration ) : Task
     {
         $this->estimatedDuration = $estimatedDuration instanceof DateInterval
             ? $estimatedDuration

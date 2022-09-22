@@ -37,7 +37,7 @@ use ArrayAccess;
 final class PatchObject extends BaseDto implements ArrayAccess
 {
     /**
-     * @var mixed[]
+     * @var array
      */
     private array $container = [];
 
@@ -53,10 +53,10 @@ final class PatchObject extends BaseDto implements ArrayAccess
     /**
      * Class factory method
      *
-     * @param mixed[] $patches
+     * @param array $patches
      * @return static
      */
-    public static function factory( array $patches ) : static
+    public static function factory( array $patches ) : PatchObject
     {
         return ( new self())->setPatches( $patches );
     }
@@ -68,7 +68,7 @@ final class PatchObject extends BaseDto implements ArrayAccess
      * @param mixed $value
      * @return $this
      */
-    public function append( string $pointer, mixed $value ) : static
+    public function append( string $pointer, mixed $value ) : PatchObject
     {
         $this->offsetSet( $pointer,$value );
         return $this;
@@ -77,7 +77,7 @@ final class PatchObject extends BaseDto implements ArrayAccess
     /**
      * Return array container
      *
-     * @return mixed[]
+     * @return array
      */
     public function getPatches() : array
     {
@@ -122,7 +122,7 @@ final class PatchObject extends BaseDto implements ArrayAccess
      * @param string $pointer
      * @return static
      */
-    public function removePointer( string $pointer) : static
+    public function removePointer( string $pointer) : PatchObject
     {
         $this->offsetUnset( $pointer );
         return $this;
@@ -131,10 +131,10 @@ final class PatchObject extends BaseDto implements ArrayAccess
     /**
      * Set patch pointer/value pars
      *
-     * @param mixed[] $patches
+     * @param array $patches
      * @return static
      */
-    public function setPatches( array $patches ) : static
+    public function setPatches( array $patches ) : PatchObject
     {
         foreach( $patches as $pointer => $value ) {
             $this->append( $pointer, $value );

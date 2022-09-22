@@ -81,7 +81,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
             }
         }
         if( isset( $jsonArray[self::PRIORITY] )) {
-            $dto->setPriority( $jsonArray[self::PRIORITY] );
+            $dto->setPriority((int) $jsonArray[self::PRIORITY] );
         }
         if( isset( $jsonArray[self::PRIVACY] )) {
             $dto->setPrivacy( $jsonArray[self::PRIVACY] );
@@ -166,7 +166,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
         }
 
         if( $dto->isExcludedSet() && $dto->getExcluded()) { // skip default false
-            $jsonArray[self::EXCLUDED] = true;
+            $jsonArray[self::EXCLUDED] = self::phpBool2Json( true );
         }
 
         if( $dto->isFreeBusyStatusSet()) {
@@ -295,7 +295,7 @@ abstract class BaseEventTask extends BaseGroupEventTask
         }
 
         if( $dto->isUseDefaultAlertsSet() && $dto->getUseDefaultAlerts()) { // skip default false
-            $jsonArray[self::USEDEFAULTALERTS] = true;
+            $jsonArray[self::USEDEFAULTALERTS] = self::phpBool2Json( true );
         }
 
         if( ! empty( $dto->getAlertsCount())) {

@@ -30,7 +30,8 @@ declare( strict_types = 1 );
 namespace Kigkonsult\PhpJsCalendar\Ical;
 
 use Exception;
-use Kigkonsult\Icalcreator\Vlocation;
+use Kigkonsult\Icalcreator\CalendarComponent     as IcalComponent;
+use Kigkonsult\Icalcreator\Vlocation             as IcalVlocation;
 use Kigkonsult\PhpJsCalendar\Dto\VirtualLocation as VirtualLocationDto;
 
 class VirtualLocation extends BaseIcal
@@ -40,16 +41,19 @@ class VirtualLocation extends BaseIcal
      *
      * @param int|string $id
      * @param VirtualLocationDto $virtualLocationDto
-     * @return Vlocation
+     * @return IcalVlocation
      * @throws Exception
      */
-    public static function processTo( int|string $id, VirtualLocationDto $virtualLocationDto  ) : Vlocation
+    public static function processToIcal(
+        int|string $id,
+        VirtualLocationDto $virtualLocationDto
+    ) : IcalVlocation
     {
-        $vlocation = new Vlocation();
+        $vlocation = new IcalVlocation();
         if( $id != (int) $id ) {  // note !=
             $vlocation->setUid( $id );
         }
-        else {
+        else { // int id
             $vlocation->setXprop( self::setXPrefix( self::UID ), $id );
         }
         // mark as virtualLocation !!
@@ -79,15 +83,19 @@ class VirtualLocation extends BaseIcal
     /**
      * Ical Vlocation properties to VirtualLocation
      *
-     * @param Vlocation $vlocation has X-prop self::VIRTUALLOCATION
-     * @return mixed[]   [ id, VirtualLocation ]
+     * @param IcalComponent|IcalVlocation $vlocation has X-prop self::VIRTUALLOCATION
+     * @return array   [ id, VirtualLocation ]
      * @throws Exception
      */
-    public static function processFrom( Vlocation $vlocation ) : array
+    public static function processFromIcal( IcalComponent|IcalVlocation $vlocation ) : array
     {
-        $id = ( false !== ( $value = $vlocation->getXprop( self::setXPrefix( self::UID ))))
-            ? $value[1]
-            : $vlocation->getUid();
+        $xUidKey = self::setXPrefix( self::UID );
+        if( $vlocation->isXpropSet( $xUidKey )) {
+            $id = $vlocation->getXprop( $xUidKey )[1];
+        }
+        else {
+            $id = $vlocation->getUid();
+        }
 
         $virtualLocationDto = new VirtualLocationDto();
         if( $vlocation->isNameSet()) {
@@ -102,11 +110,11 @@ class VirtualLocation extends BaseIcal
             $virtualLocationDto->setUri( $vlocation->getUrl());
         }
 
-        while( false !== ( $value = $vlocation->getXprop())) {
-            if( 0 === strcasecmp( self::unsetXPrefix( $value[0] ), $value[1] )) {
-                $virtualLocationDto->addFeature( $value[1] );
+        foreach( $vlocation->getAllXprop() as $xProp ) {
+            if( 0 === strcasecmp( self::unsetXPrefix( $xProp[0] ), $xProp[1] )) {
+                $virtualLocationDto->addFeature( $xProp[1] );
             }
-        } // end while
+        } // end foreach
 
         return [ $id, $virtualLocationDto ];
     }
