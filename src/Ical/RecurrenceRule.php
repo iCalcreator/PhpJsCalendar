@@ -33,8 +33,8 @@ use DateTime;
 use DateTimeZone;
 use Exception;
 use Kigkonsult\Icalcreator\Vcalendar            as IcalVcalendar;
-use Kigkonsult\PhpJsCalendar\Dto\RecurrenceRule as RecurrenceRuleDto;
 use Kigkonsult\PhpJsCalendar\Dto\NDay           as NDayDto;
+use Kigkonsult\PhpJsCalendar\Dto\RecurrenceRule as RecurrenceRuleDto;
 
 class RecurrenceRule extends BaseIcal
 {
@@ -67,22 +67,9 @@ class RecurrenceRule extends BaseIcal
         if( $recurrenceRuleDto->isFirstDayOfWeekSet()) {
             $recur[IcalVcalendar::WKST] = $recurrenceRuleDto->getFirstDayOfWeek( false );
         }
-        // array of "NDay[]"
         if( ! empty( $recurrenceRuleDto->getByDayCount())) {
-            foreach( $recurrenceRuleDto->getByDay() as $x => $nday ) { // NO Ical\Nday
-                $byDay = [];
-                if( $nday->isNthOfPeriodSet()) { // not empty
-                    $byDay[] = $nday->getNthOfPeriod();
-                }
-                if( $nday->isDaySet()) {
-                    $byDay[IcalVcalendar::DAY] = $nday->getDay();
-                }
-                if( ! empty( $byDay )) {
-                    $recur[IcalVcalendar::BYDAY][$x] = $byDay;
-                }
-            }
+            self::extractNdayDtos( $recurrenceRuleDto->getByDay(),$recur );
         }
-
         if( ! empty( $recurrenceRuleDto->getByMonthDayCount())) {
             foreach( $recurrenceRuleDto->getByMonthDay() as $x => $value ) {
                 $recur[IcalVcalendar::BYMONTHDAY][$x] = $value;
@@ -127,15 +114,53 @@ class RecurrenceRule extends BaseIcal
             $recur[IcalVcalendar::COUNT] = $recurrenceRuleDto->getCount();
         }
         if( $recurrenceRuleDto->isUntilSet()) {
-            $value     = $recurrenceRuleDto->getUntil();
-            // is in localdate but iCal expects UTC (here DATE-TIME), if NO tzid, is in UTC?
-            if( ! empty( $tzid )) {
-                $value = new DateTime( $value, new DateTimeZone( $tzid ));
-                $value->setTimezone( new DateTimeZone( IcalVcalendar::UTC ));
-            }
-            $recur[IcalVcalendar::UNTIL] = $value;
-        }
+            self::extractUntil( $recurrenceRuleDto->getUntil(), $tzid, $recur );
+        } // end if
         return $recur;
+    }
+
+    /**
+     * @param NDayDto[] $nDays
+     * @param array $recur
+     */
+    private static function extractNdayDtos(
+        array $nDays,
+        array & $recur
+    ) : void
+    {
+        foreach( $nDays as $x => $nDay ) {
+            $byDay = [];
+            if( $nDay->isNthOfPeriodSet()) { // not empty
+                $byDay[] = $nDay->getNthOfPeriod();
+            }
+            if( $nDay->isDaySet()) {
+                $byDay[IcalVcalendar::DAY] = $nDay->getDay();
+            }
+            if( ! empty( $byDay )) {
+                $recur[IcalVcalendar::BYDAY][$x] = $byDay;
+            }
+        } // end foreach
+    }
+
+    /**
+     * Extract recur until
+     *
+     * Is in localdate but iCal expects UTC (as DATE-TIME), if NO tzid, is in UTC?
+     *
+     * @param string $until
+     * @param string|null $tzid
+     * @param array $recur
+     * @throws Exception
+     */
+    private static function extractUntil( string $until, ? string $tzid, array & $recur ) : void
+    {
+        if( empty( $tzid )) {
+            $recur[IcalVcalendar::UNTIL] = $until;
+            return;
+        }
+        $value = new DateTime( $until, new DateTimeZone( $tzid ));
+        $value->setTimezone( new DateTimeZone( IcalVcalendar::UTC ));
+        $recur[IcalVcalendar::UNTIL] = $value;
     }
 
     /**
@@ -165,70 +190,51 @@ class RecurrenceRule extends BaseIcal
             $dto->setFirstDayOfWeek( $recur[IcalVcalendar::WKST] );
         }
         if( isset( $recur[IcalVcalendar::BYDAY] )) {
-            foreach((array) $recur[IcalVcalendar::BYDAY] as $byDay ) { // NO Ical\Nday class
-                $day = $nthOfPeriod = null;
-                foreach( $byDay as $bydayKey => $bydayPart ) {
-                    if( IcalVcalendar::DAY === $bydayKey ) {
-                        $day = $bydayPart;
-                    }
-                    else {
-                        $nthOfPeriod = $bydayPart;
-                    }
-                } // end foreach
-                $dto->addByDay( NDayDto::factoryDay( $day, $nthOfPeriod ));
-            } // end foreach
-        } // end if byDay
+            self::extractIcalBydays( $recur[IcalVcalendar::BYDAY], $dto );
+        }
         if( isset( $recur[IcalVcalendar::BYMONTH] )) {
-            if( is_array( $recur[IcalVcalendar::BYMONTH] )) {
-                foreach( $recur[IcalVcalendar::BYMONTH] as $month ) {
-                    $dto->addByMonth( $month );
-                }
-            }
-            else {
-                $dto->addByMonth( $recur[IcalVcalendar::BYMONTH] );
-            }
+            self::extractIcalBymonths( $recur[IcalVcalendar::BYMONTH], $dto );
         }
         if( isset( $recur[IcalVcalendar::BYMONTHDAY] )) {
             foreach( $recur[IcalVcalendar::BYMONTHDAY] as $monthDay ) {
-                $dto->addByMonthDay( $monthDay );
+                $dto->addByMonthDay((int) $monthDay );
             }
         }
         if( isset( $recur[IcalVcalendar::BYYEARDAY] )) {
             foreach( $recur[IcalVcalendar::BYYEARDAY] as $yearDay ) {
-                $dto->addByYearDay( $yearDay );
+                $dto->addByYearDay((int) $yearDay );
             }
         }
         if( isset( $recur[IcalVcalendar::BYWEEKNO] )) {
             foreach( $recur[IcalVcalendar::BYWEEKNO] as $weekNo ) {
-                $dto->addByWeekNo( $weekNo );
+                $dto->addByWeekNo((int) $weekNo );
             }
         }
         if( isset( $recur[IcalVcalendar::BYHOUR] )) {
             foreach( $recur[IcalVcalendar::BYHOUR] as $hour ) {
-                $dto->addByHour( $hour );
+                $dto->addByHour((int) $hour );
             }
         }
         if( isset( $recur[IcalVcalendar::BYMINUTE] )) {
             foreach( $recur[IcalVcalendar::BYMINUTE] as $minute ) {
-                $dto->addByMinute( $minute );
+                $dto->addByMinute((int) $minute );
             }
         }
         if( isset( $recur[IcalVcalendar::BYSECOND] )) {
             foreach( $recur[IcalVcalendar::BYSECOND] as $second ) {
-                $dto->addBySecond( $second );
+                $dto->addBySecond((int) $second );
             }
         }
         if( isset( $recur[IcalVcalendar::BYSETPOS] )) {
             foreach( $recur[IcalVcalendar::BYSETPOS] as $setByPos ) {
-                $dto->addBySetPosition( $setByPos );
+                $dto->addBySetPosition((int) $setByPos );
             }
         }
         if( isset( $recur[IcalVcalendar::COUNT] )) {
-            $dto->setCount( $recur[IcalVcalendar::COUNT] );
+            $dto->setCount((int) $recur[IcalVcalendar::COUNT] );
         }
         if( isset( $recur[IcalVcalendar::UNTIL] )) {
-            // is in UTC, localdate expected
-            if( ! empty( $tzid )) {
+            if( ! empty( $tzid )) {// is in UTC, localdate expected
                 $recur[IcalVcalendar::UNTIL]
                     ->setTimezone( new DateTimeZone( $tzid ))
                     ->format( RecurrenceRuleDto::$LocalDateTimeFMT);
@@ -236,5 +242,41 @@ class RecurrenceRule extends BaseIcal
             $dto->setUntil( $recur[IcalVcalendar::UNTIL] );
         }
         return $dto;
+    }
+
+    /**
+     * @param int|string|array $byDays
+     * @param RecurrenceRuleDto $dto
+     */
+    private static function extractIcalBydays( int|string|array $byDays, RecurrenceRuleDto $dto ) : void
+    {
+        foreach((array) $byDays as $byDay ) { // NO Ical\Nday class
+            $day = $nthOfPeriod = null;
+            foreach( $byDay as $bydayKey => $bydayPart ) {
+                if( IcalVcalendar::DAY === $bydayKey ) {
+                    $day = $bydayPart;
+                }
+                else {
+                    $nthOfPeriod = $bydayPart;
+                }
+            } // end foreach
+            $dto->addByDay( NDayDto::factoryDay( $day, $nthOfPeriod ));
+        } // end foreach
+    }
+
+    /**
+     * @param int|string|array $byMonths
+     * @param RecurrenceRuleDto $dto
+     */
+    private static function extractIcalBymonths( int|string|array $byMonths, RecurrenceRuleDto $dto ) : void
+    {
+        if( is_array( $byMonths )) {
+            foreach( $byMonths as $month ) {
+                $dto->addByMonth( $month );
+            }
+        }
+        else {
+            $dto->addByMonth( $byMonths );
+        }
     }
 }

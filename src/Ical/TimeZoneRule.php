@@ -33,7 +33,6 @@ use Exception;
 use Kigkonsult\Icalcreator\CalendarComponent  as IcalComponent;
 use Kigkonsult\Icalcreator\Daylight           as IcalDaylight;
 use Kigkonsult\Icalcreator\Standard           as IcalStandard;
-use Kigkonsult\Icalcreator\Vcalendar          as IcalVcalendar;
 use Kigkonsult\PhpJsCalendar\Dto\PatchObject  as PatchObjectDto;
 use Kigkonsult\PhpJsCalendar\Dto\TimeZoneRule as TimeZoneRuleDto;
 
@@ -54,36 +53,30 @@ class TimeZoneRule extends BaseIcal
         if( $timeZoneRuleDto->isStartSet()) {
             $timezoneSub->setDtstart( $timeZoneRuleDto->getStart());
         }
-
         if( $timeZoneRuleDto->isOffsetFromSet()) {
             $timezoneSub->setTzoffsetfrom( $timeZoneRuleDto->getOffsetFrom());
         }
-
         if( $timeZoneRuleDto->isOffsetToSet()) {
             $timezoneSub->setTzoffsetto( $timeZoneRuleDto->getOffsetTo());
         }
-
         // array of "RecurrenceRule[]"  opt until is in UTC
         if( ! empty( $timeZoneRuleDto->getRecurrenceRulesCount())) {
             foreach( $timeZoneRuleDto->getRecurrenceRules() as $recurrenceRule ) {
                 $timezoneSub->setRrule( RecurrenceRule::processToIcalRecur( $recurrenceRule ));
             }
         }
-
         // array of "LocalDateTime[PatchObject]" - ignore PatchObject
         if( ! empty( $timeZoneRuleDto->getRecurrenceOverridesCount())) {
             foreach( array_keys( $timeZoneRuleDto->getRecurrenceOverrides()) as $value ) {
                 $timezoneSub->setRdate( $value );
             }
         }
-
         // array of "String[Boolean]"
         if( ! empty( $timeZoneRuleDto->getNamesCount())) {
             foreach( array_keys( $timeZoneRuleDto->getNames()) as $value ) {
                 $timezoneSub->setTzname( $value );
             }
         }
-
         // array of "String[]"
         if( ! empty( $timeZoneRuleDto->getCommentsCount())) {
             foreach( $timeZoneRuleDto->getComments() as $value ) {
@@ -104,45 +97,37 @@ class TimeZoneRule extends BaseIcal
     ) : TimeZoneRuleDto
     {
         $timeZoneRuleDto = new TimeZoneRuleDto();
-
         if( $iCalComp->isDtstartSet()) {
             $timeZoneRuleDto->setStart( $iCalComp->getDtstart());
         }
-
         if( $iCalComp->isTzoffsetFromSet()) {
             $timeZoneRuleDto->setOffsetfrom( $iCalComp->getTzoffsetFrom());
         }
-
         if( $iCalComp->isTzoffsetToSet()) {
             $timeZoneRuleDto->setOffsetto( $iCalComp->getTzoffsetTo());
         }
-
         if( $iCalComp->isRRuleSet()) {
             $timeZoneRuleDto->addRecurrenceRule(
                 RecurrenceRule::processFromIcalRecur( $iCalComp->getRRule())
             );
         }
-
         // array of "LocalDateTime[PatchObject]" - ignore Rdate period and PatchObject
         foreach( $iCalComp->getAllRdate( true ) as $rDatePc ) {
-            if( ! $rDatePc->hasParamKey( IcalVcalendar::VALUE, IcalVcalendar::PERIOD )) {
+            if( ! $rDatePc->hasParamKey( IcalComponent::VALUE, IcalComponent::PERIOD )) {
                 $timeZoneRuleDto->addRecurrenceOverride(
                     $rDatePc->getValue()[0],
                     new PatchObjectDto()
                 );
             }
         }
-
         // array of "String[Boolean]"
         foreach( $iCalComp->getAllTzname() as $value ) {
             $timeZoneRuleDto->addName( $value );
         }
-
         // array of "String[]"
         foreach( $iCalComp->getAllComment() as $value ) {
             $timeZoneRuleDto->addComment( $value );
         }
-
         return $timeZoneRuleDto;
     }
 }

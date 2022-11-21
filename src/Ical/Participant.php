@@ -54,12 +54,59 @@ class Participant extends BaseIcal
         ParticipantDto  $participantDto,
         IcalParticipant $icalParticipant,
         array           $idEmailArr,
-        null|IcalVlocation $iCalVlocation
+        ? IcalVlocation $iCalVlocation
     ) : array
     {
-        $attendeeValue  = null;
         $attendeeParams = [ IcalParticipant::X_PARTICIPANTID => $icalParticipant->getUid() ];
+        $langParams     = self::extractJslanguge( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsName( $participantDto, $icalParticipant, $attendeeParams, $langParams );
+        self::extractJsExpectReply( $participantDto, $attendeeParams );
+        $caParams       = self::extractJsKind( $participantDto, $attendeeParams );
+        $attendeeValue  = self::extractCalendaraddress( $participantDto, $icalParticipant, $caParams );
+        if( $participantDto->isDescriptionSet()) {
+            $icalParticipant->setDescription( $participantDto->getDescription());
+        }
+        self::extractJsSendTo( $participantDto, $icalParticipant, $attendeeValue );
+        self::extractJsRoles( $participantDto, $icalParticipant, $attendeeParams );
+        if( null !== $iCalVlocation ) { // one should be ParticipantDto::locationId, if set
+            self::processVlocation( $iCalVlocation, $icalParticipant, $attendeeParams );
+        }
+        self::extractJsParticipationStatus( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsParticipationComment( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsScheduleAgent( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJScheduleForceSend( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsScheduleSequence( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsScheduleStatus( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsScheduleUpdated( $participantDto, $icalParticipant, $attendeeParams );
+        if( $participantDto->isSentBySet()) {
+            $attendeeParams[IcalParticipant::SENT_BY] = $participantDto->getSentBy();
+        }
+        self::extractJsInvitedBy( $participantDto, $icalParticipant, $attendeeParams, $idEmailArr );
+        self::extractJsDelegatedTo( $participantDto, $attendeeParams, $idEmailArr );
+        self::extractJsDelegatedFrom( $participantDto, $attendeeParams, $idEmailArr );
+        self::extractJsMemberOf( $participantDto, $attendeeParams, $idEmailArr );
+        // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA/URL
+        if( ! empty( $participantDto->getLinksCount())) {
+            Link::processLinksToIcal( $participantDto->getLinks(), $icalParticipant );
+        }
+        self::extractJsProgress( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsProgressUpdated( $participantDto, $icalParticipant, $attendeeParams );
+        self::extractJsPercentComplete( $participantDto, $icalParticipant, $attendeeParams );
+        return [ $attendeeValue, $attendeeParams ];
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     * @return array
+     */
+    private static function extractJslanguge(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : array
+    {
         $langParams     = [];
         if( $participantDto->isLanguageSet()) {
             $language   = $participantDto->getLanguage();
@@ -67,89 +114,224 @@ class Participant extends BaseIcal
             $langParams = [ IcalParticipant::LANGUAGE => $language ];
             $attendeeParams += $langParams;
         }
+        return $langParams;
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     * @param array $langParams
+     * @return void
+     */
+    private static function extractJsName(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams,
+        array $langParams
+    ) : void
+    {
         if( $participantDto->isNameSet()) {
             $value         = $participantDto->getName();
             $icalParticipant->setSummary( $value, $langParams );
             $attendeeParams[IcalParticipant::CN] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @return void
+     */
+    private static function extractJsExpectReply(
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isExpectReplySet()) {
             $attendeeParams[IcalParticipant::RSVP] = $participantDto->getExpectReply()
                 ? IcalParticipant::TRUE
                 : IcalParticipant::FALSE;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @return array
+     */
+    private static function extractJsKind(
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : array
+    {
         $caParams = [];
         if( $participantDto->isKindSet()) {
             $kind = $participantDto->getKind();
             $attendeeParams[IcalParticipant::CUTYPE] = $kind;
             $caParams[self::setXPrefix( ParticipantDto::KIND )] = $kind;
         }
+        return $caParams;
+    }
 
-        $email = null;
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $caParams
+     * @return null|string
+     */
+    private static function extractCalendaraddress(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array $caParams
+    ) : ? string
+    {
+        $attendeeValue = null;
         if( $participantDto->isEmailSet()) {
-            $attendeeValue = $email = $participantDto->getEmail();
-            $icalParticipant->setCalendaraddress( $email, $caParams );
+            $attendeeValue = $participantDto->getEmail();
+            $icalParticipant->setCalendaraddress( $attendeeValue, $caParams );
         }
+        return $attendeeValue;
+    }
 
-        if( $participantDto->isDescriptionSet()) {
-            $icalParticipant->setDescription( $participantDto->getDescription());
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param null|string email
+     * @return void
+     */
+    private static function extractJsSendTo(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        ? string $email
+    ) : void
+    {
+        if( empty( $participantDto->getSendToCount())) {
+            return;
         }
-
-        // array of "String[String]"
-        if( ! empty( $participantDto->getSendToCount())) {
-            $key  = self::setXPrefix( self::METHOD );
-            foreach( $participantDto->getSendTo() as $sendToMethod => $uri ) {
-                $uri = self::removeMailtoPrefix( $uri );
-                if(( ParticipantDto::IMIP !== $sendToMethod ) ||
-                    ( empty( $email ) || ( 0 !== strcasecmp( $email, $uri )))) {
-                    $icalParticipant->setContact( $uri, [ $key => $sendToMethod ] );
-                }
-            } // end foreach
-        } // end if sendTo
-
-        // array of "String[Boolean]"  ONLY one icalParticipant::participanttype accepted
-        if( ! empty( $participantDto->getRolesCount())) {
-            $roles = array_keys( $participantDto->getRoles());
-            $first = reset( $roles );
-            $icalParticipant->setParticipanttype( strtoupper( $first ));
-            $attendeeParams[IcalParticipant::ROLE] = $first;
-            $attendeeParams[IcalParticipant::X_PARTICIPANT_TYPE] =
-                strtoupper( implode( self::$itemSeparator, $roles ));
-        }
-
-        if( null !== $iCalVlocation ) { // one should be ParticipantDto::locationId, if set
-            $lid = $iCalVlocation->getUid();
-            if( $iCalVlocation->isNameSet()) {
-                $icalParticipant->setLocation(
-                    $iCalVlocation->getName(),
-                    [ IcalParticipant::X_VLOCATIONID => $lid ]
-                );
+        $key  = self::setXPrefix( self::METHOD );
+        foreach( $participantDto->getSendTo() as $sendToMethod => $uri ) {// array of "String[String]"
+            $uri = self::removeMailtoPrefix( $uri );
+            if(( ParticipantDto::IMIP !== $sendToMethod ) ||
+                ( empty( $email ) || ( 0 !== strcasecmp( $email, $uri )))) {
+                $icalParticipant->setContact( $uri, [ $key => $sendToMethod ] );
             }
-            $icalParticipant->setComponent( $iCalVlocation );
-            $attendeeParams[IcalParticipant::X_VLOCATIONID] = $lid;
-        } // end if Vlocation
+        } // end foreach
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     * @return void
+     */
+    private static function extractJsRoles(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
+        if( empty( $participantDto->getRolesCount())) {
+            return;
+        }
+        // array of "String[Boolean]"  ONLY one icalParticipant::participanttype accepted
+        $roles = array_keys( $participantDto->getRoles());
+        $first = reset( $roles );
+        $icalParticipant->setParticipanttype( strtoupper( $first ));
+        $attendeeParams[IcalParticipant::ROLE] = $first;
+        $attendeeParams[IcalParticipant::X_PARTICIPANT_TYPE] =
+            strtoupper( implode( self::$itemSeparator, $roles ));
+    }
+
+    /**
+     * @param IcalVlocation $iCalVlocation
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     * @throws Exception
+     */
+    private static function processVlocation(
+        IcalVlocation $iCalVlocation,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
+        $lid = $iCalVlocation->getUid();
+        if( $iCalVlocation->isNameSet()) {
+            $icalParticipant->setLocation(
+                $iCalVlocation->getName(),
+                [ IcalParticipant::X_VLOCATIONID => $lid ]
+            );
+        }
+        $icalParticipant->setComponent( $iCalVlocation );
+        $attendeeParams[IcalParticipant::X_VLOCATIONID] = $lid;
+    }
+
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsParticipationStatus(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isParticipationStatusSet()) {
             $value = strtoupper( $participantDto->getParticipationStatus( false ));
             $icalParticipant->setStatus( $value );
             $attendeeParams[IcalParticipant::PARTSTAT] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsParticipationComment(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isParticipationCommentSet()) {
             $value = $participantDto->getParticipationComment();
             $icalParticipant->setComment( $value );
             $attendeeParams[ self::setXPrefix( self::COMMENTS ) ] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsScheduleAgent(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isScheduleAgentSet()) {
             $value = $participantDto->getScheduleAgent( false );
             $key   = self::setXPrefix( self::SCHEDULEAGENT );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJScheduleForceSend(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isScheduleForceSendSet()) { // bool
             $key   = self::setXPrefix( self::SCHEDULEFORCESEND );
             $value = $participantDto->getScheduleForceSend()
@@ -158,108 +340,250 @@ class Participant extends BaseIcal
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsScheduleSequence(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isScheduleSequenceSet()) {
             $value = $participantDto->getScheduleSequence( false );
             $key   = self::setXPrefix( self::SCHEDULESEQUENCE );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = (string) $value;
         }
+    }
 
-        // array of "String[]"
-        if( ! empty( $participantDto->getScheduleStatusCount())) {
-            $xParam = false;
-            foreach( $participantDto->getScheduleStatus() as $value ) {
-                if( ! $xParam ) {
-                    $attendeeParams[ self::setXPrefix( self::SCHEDULESTATUS ) ] = $value;
-                    $xParam = true;
-                }
-                $values     = explode( self::$SQ, $value, 3 );
-                $icalParticipant->setRequeststatus(
-                    $values[0],
-                    $values[1] ?? null,
-                    $values[2] ?? null
-                );
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsScheduleStatus(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
+        if( empty( $participantDto->getScheduleStatusCount())) {
+            return;
+        }
+        $xParam = false;
+        foreach( $participantDto->getScheduleStatus() as $value ) { // array of "String[]"
+            if( ! $xParam ) {
+                $attendeeParams[ self::setXPrefix( self::SCHEDULESTATUS ) ] = $value;
+                $xParam = true;
             }
-        } // end if
+            $values     = explode( self::$SQ, $value, 3 );
+            $icalParticipant->setRequeststatus(
+                $values[0],
+                $values[1] ?? null,
+                $values[2] ?? null
+            );
+        } // end foreach
+    }
+
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsScheduleUpdated(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isScheduleUpdatedSet()) {
             $value = $participantDto->getScheduleUpdated();
             $key   = self::setXPrefix( self::SCHEDULEUPDATED );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = $value;
         }
+    }
 
-        if( $participantDto->isSentBySet()) {
-            $attendeeParams[IcalParticipant::SENT_BY] = $participantDto->getSentBy();
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     * @param array $idEmailArr
+     */
+    private static function extractJsInvitedBy(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams,
+        array $idEmailArr
+    ) : void
+    {
+        if( ! $participantDto->isInvitedBySet()) {
+            return;
         }
-
-        if( $participantDto->isInvitedBySet()) {
-            $invitedById = $participantDto->getInvitedBy(); // id to other participant
-            if( self::isIdFoundInIdEmailArr( $invitedById, $idEmailArr, $email )) {
-                $key = self::setXPrefix( self::INVITEDBY );
-                $icalParticipant->setXprop(
-                    $key,
-                    $email,
-                    [ IcalParticipant::X_PARTICIPANTID => $invitedById ]
-                );
-                $attendeeParams[$key] = $email;
-            }
+        $invitedById = $participantDto->getInvitedBy(); // id to other participant
+        if( self::isIdFoundInIdEmailArr( $invitedById, $idEmailArr, $email )) {
+            $key = self::setXPrefix( self::INVITEDBY );
+            $icalParticipant->setXprop(
+                $key,
+                $email,
+                [ IcalParticipant::X_PARTICIPANTID => $invitedById ]
+            );
+            $attendeeParams[$key] = $email;
         } // end if
+    }
 
-        // array of "Id[Boolean]"  - a number of id to other participants
-        if( ! empty( $participantDto->getDelegatedToCount())) {
-            foreach( array_keys( $participantDto->getDelegatedTo()) as $x => $particpantId ) {
-                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
-                    $attendeeParams[IcalParticipant::DELEGATED_TO][$x] = $email;
-                }
-            }
-        } // end if
-
-        // array of "Id[Boolean]"  - a number of id to other participants
-        if( ! empty( $participantDto->getDelegatedFromCount())) {
-            foreach( array_keys( $participantDto->getDelegatedFrom()) as $x => $particpantId ) {
-                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
-                    $attendeeParams[IcalParticipant::DELEGATED_FROM][$x] = $email;
-                }
-            }
-        } // end if
-
-        // array of "Id[Boolean]"  - a number of id to other participants
-        if( ! empty( $participantDto->getMemberOfCount())) {
-            foreach( array_keys( $participantDto->getMemberOf()) as $x => $particpantId ) {
-                if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
-                    $attendeeParams[IcalParticipant::MEMBER][$x] = $email;
-                }
-            }
-        } // end if
-
-        // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA/URL
-        if( ! empty( $participantDto->getLinksCount())) {
-            Link::processLinksToIcal( $participantDto->getLinks(), $icalParticipant );
+    /**
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @param array $idEmailArr
+     */
+    private static function extractJsDelegatedTo(
+        ParticipantDto $participantDto,
+        array & $attendeeParams,
+        array $idEmailArr
+    ) : void
+    {
+        if( empty( $participantDto->getDelegatedToCount())) {
+            return;
         }
+        // array of "Id[Boolean]"  - a number of id to other participants
+        foreach( array_keys( $participantDto->getDelegatedTo()) as $x => $particpantId ) {
+            if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                $attendeeParams[IcalParticipant::DELEGATED_TO][$x] = $email;
+            }
+        } // end foreach
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @param array $idEmailArr
+     */
+    private static function extractJsDelegatedfrom(
+        ParticipantDto $participantDto,
+        array & $attendeeParams,
+        array $idEmailArr
+    ) : void
+    {
+        if( empty( $participantDto->getDelegatedFromCount())) {
+            return;
+        }
+        // array of "Id[Boolean]"  - a number of id to other participants
+        foreach( array_keys( $participantDto->getDelegatedFrom()) as $x => $particpantId ) {
+            if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                $attendeeParams[IcalParticipant::DELEGATED_FROM][$x] = $email;
+            }
+        } // end foreach
+    }
+
+    /**
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @param array $idEmailArr
+     */
+    private static function extractJsMemberOf(
+        ParticipantDto $participantDto,
+        array & $attendeeParams,
+        array $idEmailArr
+    ) : void
+    {
+        if( empty( $participantDto->getMemberOfCount())) {
+            return;
+        }
+        // array of "Id[Boolean]"  - a number of id to other participants
+        foreach( array_keys( $participantDto->getMemberOf()) as $x => $particpantId ) {
+            if( self::isIdFoundInIdEmailArr( $particpantId, $idEmailArr, $email )) {
+                $attendeeParams[IcalParticipant::MEMBER][$x] = $email;
+            }
+        } // end foreach
+    }
+
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsProgress(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isProgressSet()) {
             $value = $participantDto->getProgress();
             $key   = self::setXPrefix(self::PROGRESS );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsProgressUpdated(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isProgressUpdatedSet()) {
             $value = $participantDto->getProgressUpdated();
             $key   = self::setXPrefix( self::PROGRESSUPDATED );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = $value;
         }
+    }
 
+    /**
+     * @param ParticipantDto $participantDto
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param array $attendeeParams
+     */
+    private static function extractJsPercentComplete(
+        ParticipantDto $participantDto,
+        IcalComponent|IcalParticipant $icalParticipant,
+        array & $attendeeParams
+    ) : void
+    {
         if( $participantDto->isPercentCompleteSet()) {
             $value = $participantDto->getPercentComplete();
             $key   = self::setXPrefix( self::PERCENTCOMPLETE );
             $icalParticipant->setXprop( $key, $value );
             $attendeeParams[$key] = (string) $value;
         }
+    }
 
-        return [ $attendeeValue, $attendeeParams ];
+    /**
+     * Return IcalVlocation for participant if location id set and found in vLocations
+     *
+     * @param ParticipantDto $participantDto
+     * @param array $vLocations
+     * @param array & $pVlocationLids
+     * @return IcalVlocation|null
+     */
+    public static function getVlocationUsingLocationId(
+        ParticipantDto $participantDto,
+        array $vLocations,
+        array & $pVlocationLids
+    ) : ? IcalVlocation
+    {
+        $participantVlocation = null;
+        if( $participantDto->isLocationIdSet()) {
+            $lid = $participantDto->getLocationId();
+            if( isset( $vLocations[$lid] ) ) {
+                $participantVlocation = $vLocations[$lid];
+//              unset( $vLocations[$lid] ); // may also be used in another participant
+                $pVlocationLids[] = $lid;
+            }
+        } // end if
+        return $participantVlocation;
     }
 
     /**
@@ -270,7 +594,7 @@ class Participant extends BaseIcal
      * @param string|null $result
      * @return bool
      */
-    public static function isIdFoundInIdEmailArr(
+    private static function isIdFoundInIdEmailArr(
         string $id,
         array $idEmailArr,
         ? string & $result = null
@@ -299,7 +623,7 @@ class Participant extends BaseIcal
     ) : bool
     {
         $result = null;
-        if( null === $email ) {
+        if( empty( $email )) {
             return false;
         }
         $email = strtolower( self::removeMailtoPrefix( $email ));
@@ -329,19 +653,67 @@ class Participant extends BaseIcal
     {
         $participantDto = new ParticipantDto();
         $id = $icalParticipant->getUid();
+        self::extractIcalXlanguage( $icalParticipant, $participantDto, $attendeeParams );
+        if( $icalParticipant->isSummarySet()) {
+            $participantDto->setName( $icalParticipant->getSummary());
+            unset( $attendeeParams[IcalParticipant::CN] );
+        }
+        $email = self::extractIcalCalendaraddress( $icalParticipant, $participantDto, $attendeeParams );
+        if( $icalParticipant->isDescriptionSet()) {
+            $participantDto->setDescription( $icalParticipant->getDescription());
+        }
+        self::extractIcalContact( $icalParticipant, $participantDto, $email );
+        if( $icalParticipant->isParticipanttypeSet()) {
+            $participantDto->addRole( $icalParticipant->getParticipanttype());
+        }
+        // Vlocations + location
+        $vLocations = self::extractIcalLocations( $icalParticipant, $participantDto,$attendeeParams );
+        self::extractIcalStatus( $icalParticipant, $participantDto, $attendeeParams );
+        self::extractIcalComment( $icalParticipant, $participantDto, $attendeeParams );
+        self::extractIcalXinvitedby( $icalParticipant, $participantDto, $attendeeParams, $idEmailArr );
+        // process iCal X-props
+        // SCHEDULEAGENT, -FORCESEND, -SEQUENCE, -UPDATED, PROGRESSUPDATED, PERCENTCOMPLETE, PROGRESS
+        self::extractIcalSpecXprops( $icalParticipant, $participantDto, $attendeeParams );
+        self::extractIcaRequeststatus( $icalParticipant, $participantDto, $attendeeParams );
+        // iCal IMAGE + STRUCTURED_DATA to links
+        Link::processLinksFromIcal( $icalParticipant, $participantDto );
+        // upd from opt attendee params NOT found in Participant
+        self::processFromIcalArray( $attendeeParams, $participantDto, $idEmailArr );
+        return [ $id, $participantDto, $vLocations ];
+    }
 
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @return void
+     */
+    private static function extractIcalXlanguage(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
         $key = self::setXPrefix( IcalParticipant::LANGUAGE );
         if( $icalParticipant->isXpropSet( $key )) {
             $xProp = $icalParticipant->getXprop(  $key );
             $participantDto->setLanguage( $xProp[1] );
             unset( $attendeeParams[IcalParticipant::LANGUAGE] );
         }
+    }
 
-        if( $icalParticipant->isSummarySet()) {
-            $participantDto->setName( $icalParticipant->getSummary());
-            unset( $attendeeParams[IcalParticipant::CN] );
-        }
-
+        /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @return string|null
+     */
+    private static function extractIcalCalendaraddress(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : ? string
+    {
         $email = null;
         if( $icalParticipant->isCalendaraddressSet()) {
             $calAddress = $icalParticipant->getCalendaraddress( true );
@@ -353,11 +725,26 @@ class Participant extends BaseIcal
                 unset( $attendeeParams[IcalParticipant::CUTYPE] );
             }
         } // end if
+        return $email;
+    }
 
-        if( $icalParticipant->isDescriptionSet()) {
-            $participantDto->setDescription( $icalParticipant->getDescription());
+    /**
+     * Extract Contacts from iCal
+     *
+     * @param IcalComponent|IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param null|string $email
+     * @return void
+     */
+    private static function extractIcalContact(
+        IcalComponent|IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        ? string $email
+    ) : void
+    {
+        if( ! $icalParticipant->isContactSet()) {
+            return;
         }
-
         $key = self::setXPrefix( self::METHOD );
         foreach( $icalParticipant->getAllContact( true ) as $contact ) {
             $sendToMethod = match ( true ) {
@@ -370,12 +757,23 @@ class Participant extends BaseIcal
                 $participantDto->addSendTo( $sendToMethod, $contact->getValue());
             }
         } // end foreach
+    }
 
-        if( $icalParticipant->isParticipanttypeSet()) {
-            $participantDto->addRole( $icalParticipant->getParticipanttype());
-        }
-
-        // Vlocations // location
+    /**
+     * Extract Vlocations and locations from iCal
+     *
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto,
+     * @param array $attendeeParams
+     * @return array
+     * @throws Exception
+     */
+    private static function extractIcalLocations(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : array
+    {
         $vLocations    = [];
         $locationNames = [];
         foreach( $icalParticipant->getComponents( IcalParticipant::VLOCATION ) as $iCalVlocation ) {
@@ -389,7 +787,7 @@ class Participant extends BaseIcal
             switch( true ) {
                 case $location->hasParamKey( IcalParticipant::X_VLOCATIONID ) :
                     $lid  = $location->getParams( IcalParticipant::X_VLOCATIONID );
-                    if( isset( $vLocations[$lid] )) { // not found as Vlocation (uid)
+                    if( isset( $vLocations[$lid] )) { // found as Vlocation (on uid)
                         $iCalVlocation = $vLocations[$lid];
                     }
                     else {
@@ -398,7 +796,7 @@ class Participant extends BaseIcal
                         $vLocations[$lid] = $iCalVlocation;
                     }
                     break;
-                case in_array( strtolower( $location->getValue()), $locationNames, true ) :
+                case self::foundInArray( $location->getValue(), $locationNames ) :
                     // already found as Vlocation (name), skip
                     continue 2;
                 default :
@@ -407,74 +805,14 @@ class Participant extends BaseIcal
                     $vLocations[$lid] = $iCalVlocation;
                     break;
             } // end switch
-            $locationNames[]  = strtolower( $location->getValue());
+            $locationNames[] = strtolower( $location->getValue());
             $iCalVlocation->setName( $location->getValue());
             if( ! $participantDto->isLocationIdSet()) {
                 $participantDto->setLocationId( $lid );
                 unset( $attendeeParams[IcalParticipant::X_VLOCATIONID] );
             }
-       } // end foreach
-
-        if( $icalParticipant->isStatusSet()) {
-            $participantDto->setParticipationStatus( $icalParticipant->getStatus());
-            unset( $attendeeParams[IcalParticipant::PARTSTAT] );
-        }
-
-        if( $icalParticipant->isCommentSet()) { // only one
-            $participantDto->setParticipationComment( $icalParticipant->getComment());
-            unset( $attendeeParams[self::setXPrefix( self::COMMENTS )] );
-        }
-
-        $key   = self::setXPrefix( self::INVITEDBY ); // got email, id expected
-        if( $icalParticipant->isXpropSet( $key ))  {
-            $xProp = $icalParticipant->getXprop( $key, null, true );
-            $email = $xProp[1]->getValue();
-            if( isset( $xPropVal[IcalParticipant::X_PARTICIPANTID] )) {
-                $participantDto->setInvitedBy( $xPropVal[IcalParticipant::X_PARTICIPANTID] );
-                unset( $attendeeParams[$key] );
-            }
-            elseif( self::isEmailFoundInIdEmailArr( $email, $idEmailArr, $result )) {
-                $participantDto->setInvitedBy( $result ); // i.e. id
-                unset( $attendeeParams[$key] );
-            }
-        } // end if
-
-        foreach( [
-            self::SCHEDULEAGENT,
-            self::SCHEDULEFORCESEND,
-            self::SCHEDULESEQUENCE,
-            self::SCHEDULEUPDATED,
-            self::PROGRESSUPDATED,
-            self::PERCENTCOMPLETE,
-            self::PROGRESS ] as $key ) {
-            $key2 = self::setXPrefix( $key );
-            if( ! $icalParticipant->isXpropSet( $key2 ))  {
-                continue;
-            }
-            $xProp = $icalParticipant->getXprop( $key2 );
-            $value = match( true ) {
-                ( self::SCHEDULEFORCESEND === $key ) => // bool
-                    ( IcalParticipant::TRUE === $xProp[1] ),
-                in_array( $key, [ self::PERCENTCOMPLETE, self::SCHEDULESEQUENCE ], true  ) => // int
-                    (int) $xProp[1],
-                default => $xProp[1]
-            };
-            $setMethod = self::getSetmethodName( $key );
-            $participantDto->{$setMethod}( $value );
-            unset( $attendeeParams[$key2] );
         } // end foreach
-
-        foreach( $icalParticipant->getAllRequeststatus() as $recStat ) {
-            $participantDto->addScheduleStatus( implode( self::$SQ, $recStat ));
-            unset( $attendeeParams[self::setXPrefix( self::SCHEDULESTATUS )] );
-        } // end foreach
-
-        // iCal IMAGE + STRUCTURED_DATA to links
-        Link::processLinksFromIcal( $icalParticipant, $participantDto );
-
-        // upd from opt attendee params NOT found in Participant
-        self::processFromIcalArray( $attendeeParams, $participantDto, $idEmailArr );
-        return [ $id, $participantDto, $vLocations ];
+        return $vLocations;
     }
 
     /**
@@ -494,12 +832,154 @@ class Participant extends BaseIcal
         $vLocations[$lid] = $iCalVlocation;
         if( $iCalVlocation->isNameSet()) {
             $locationName = $iCalVlocation->getName();
-            if( ! in_array( $locationName, $locationNames, true )) {
-                $locationNames[] = $locationName;
+            if( ! self::foundInArray( $locationName, $locationNames )) {
+                $locationNames[] = strtolower( $locationName );
             }
         }
         return $lid;
     }
+
+    /**
+     * Return bool true if (strtolower) needle found in haystack
+     * @param string $needle
+     * @param array $haystack
+     * @return bool
+     */
+    private static function foundInArray( string $needle, array $haystack ) : bool
+    {
+        return in_array( strtolower( $needle ), $haystack, true );
+    }
+
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @rturn void
+     */
+    private static function extractIcalStatus(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
+        if( $icalParticipant->isStatusSet()) {
+            $participantDto->setParticipationStatus( $icalParticipant->getStatus());
+            unset( $attendeeParams[IcalParticipant::PARTSTAT] );
+        }
+    }
+
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @rturn void
+     */
+    private static function extractIcalComment(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
+        if( $icalParticipant->isCommentSet()) { // only one
+            $participantDto->setParticipationComment( $icalParticipant->getComment());
+            unset( $attendeeParams[self::setXPrefix( self::COMMENTS )] );
+        }
+    }
+
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @param array $idEmailArr
+     * @rturn void
+     */
+    private static function extractIcalXinvitedby(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams,
+        array $idEmailArr
+    ) : void
+    {
+        $key   = self::setXPrefix( self::INVITEDBY ); // got email, id expected
+        if( ! $icalParticipant->isXpropSet( $key )) {
+            return;
+        }
+        $xProp = $icalParticipant->getXprop( $key, null, true );
+        $email = $xProp[1]->getValue();
+        if( $xProp[1]->hasParamKey( IcalParticipant::X_PARTICIPANTID )) {
+            $participantDto->setInvitedBy( $xProp[1]->getParams( IcalParticipant::X_PARTICIPANTID ));
+            unset( $attendeeParams[$key] );
+        }
+        elseif( self::isEmailFoundInIdEmailArr( $email, $idEmailArr, $result )) {
+            $participantDto->setInvitedBy( $result ); // i.e. id
+            unset( $attendeeParams[$key] );
+        }
+    }
+
+    /**
+     * @var array
+     */
+    private static array $SPECKEYS = [
+        self::SCHEDULEAGENT,
+        self::SCHEDULEFORCESEND,
+        self::SCHEDULESEQUENCE,
+        self::SCHEDULEUPDATED,
+        self::PROGRESS,
+        self::PROGRESSUPDATED,
+        self::PERCENTCOMPLETE
+    ];
+
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     * @return void
+     */
+    private static function extractIcalSpecXprops(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
+        foreach( self::$SPECKEYS as $key ) {
+            $key2 = self::setXPrefix( $key );
+            if( ! $icalParticipant->isXpropSet( $key2 ))  {
+                continue;
+            }
+            $xProp = $icalParticipant->getXprop( $key2 );
+            $value = match( true ) {
+                ( self::SCHEDULEFORCESEND === $key ) => // bool
+                ( IcalParticipant::TRUE === $xProp[1] ),
+                in_array( $key, [ self::PERCENTCOMPLETE, self::SCHEDULESEQUENCE ], true  ) => // int
+                (int) $xProp[1],
+                default => $xProp[1]
+            };
+            $setMethod = self::getSetmethodName( $key );
+            $participantDto->{$setMethod}( $value );
+            unset( $attendeeParams[$key2] );
+        } // end foreach
+    }
+
+    /**
+     * @param IcalParticipant $icalParticipant
+     * @param ParticipantDto $participantDto
+     * @param array $attendeeParams
+     */
+    private static function extractIcaRequeststatus(
+        IcalParticipant $icalParticipant,
+        ParticipantDto $participantDto,
+        array & $attendeeParams
+    ) : void
+    {
+        if( ! $icalParticipant->isRequeststatusSet()) {
+            return;
+        }
+        foreach( $icalParticipant->getAllRequeststatus() as $recStat ) {
+            $participantDto->addScheduleStatus( implode( self::$SQ, $recStat ));
+            unset( $attendeeParams[self::setXPrefix( self::SCHEDULESTATUS )] );
+        } // end foreach
+    }
+
 
     /**
      * Update Participant Dto from Ical Vevent|Vtodo Attendee property params
@@ -520,21 +1000,41 @@ class Participant extends BaseIcal
         if( empty( $params )) {
             return;
         }
-
         $pao = new ArrayObject( $params, ArrayObject::ARRAY_AS_PROPS );
-
         if( isset( $pao->{IcalParticipant::LANGUAGE} )) {
             $participantDto->setLanguage( $pao->{IcalParticipant::LANGUAGE} );
         }
-
         if( isset( $pao->{IcalParticipant::RSVP} )) {
             $participantDto->setExpectReply(( IcalParticipant::TRUE === $pao->{IcalParticipant::RSVP} ));
         }
-
         if( isset( $pao->{IcalParticipant::CN} )) {
             $participantDto->setName( $pao->{IcalParticipant::CN} );
         }
+        self::extractKind( $pao, $participantDto );
+        self::extractRole( $pao, $participantDto );
+        if( isset( $pao->{IcalParticipant::X_VLOCATIONID} )) {
+            $participantDto->setLocationId( $pao->{IcalParticipant::X_VLOCATIONID} );
+        }
+        if( isset( $pao->{IcalParticipant::PARTSTAT} )) {
+            $participantDto->setParticipationStatus( $pao->{IcalParticipant::PARTSTAT} );
+        }
+        self::extractParticipationComment( $pao, $participantDto );
+        self::extractInvitedBy( $pao, $participantDto, $idEmailArr );
+        self::extractIcalParamsXprops( $pao, $participantDto );
+        self::extractSentBy( $pao, $participantDto );
+        self::processIcalParamMultiEmail( $pao, $idEmailArr, $participantDto );
+    }
 
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @return void
+     */
+    private static function extractKind(
+        ArrayObject $pao,
+        ParticipantDto $participantDto
+    ) : void
+    {
         $key = self::setXPrefix( ParticipantDto::KIND );
         if( isset( $pao->{$key} ) && ! empty( $pao->{$key} )) {
             $participantDto->setKind( $pao->{$key} );
@@ -542,40 +1042,88 @@ class Participant extends BaseIcal
         elseif( isset( $pao->{IcalParticipant::CUTYPE} )) {
             $participantDto->setKind( $pao->{IcalParticipant::CUTYPE} );
         }
+    }
 
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @return void
+     */
+    private static function extractRole(
+        ArrayObject $pao,
+        ParticipantDto $participantDto
+    ) : void
+    {
         foreach( [ IcalParticipant::X_PARTICIPANT_TYPE, IcalParticipant::ROLE ] as $actorKey ) {
             if( isset( $pao->{$actorKey} )) {
                 $participantDto->setRoles( explode( self::$itemSeparator, $pao->{$actorKey} ));
             }
         } // end foreach
+    }
 
-        if( isset( $pao->{IcalParticipant::X_VLOCATIONID} )) {
-            $participantDto->setLocationId( $pao->{IcalParticipant::X_VLOCATIONID} );
-        }
-
-        if( isset( $pao->{IcalParticipant::PARTSTAT} )) {
-            $participantDto->setParticipationStatus( $pao->{IcalParticipant::PARTSTAT} );
-        }
-
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @return void
+     */
+    private static function extractParticipationComment(
+        ArrayObject $pao,
+        ParticipantDto $participantDto
+    ) : void
+    {
         $key = self::setXPrefix( self::COMMENTS );
         if( isset( $pao->{$key} )) {
             $participantDto->setParticipationComment( $pao->{$key} );
         }
+    }
 
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @param array $idEmailArr
+     * @return void
+     */
+    private static function extractInvitedBy(
+        ArrayObject $pao,
+        ParticipantDto $participantDto,
+        array $idEmailArr
+    ) : void
+    {
         $key = self::setXPrefix( self::INVITEDBY ); // have email, expect id
         if( isset( $pao->{$key} ) &&
             self::isEmailFoundInIdEmailArr( $pao->{$key}, $idEmailArr, $result )) {
             $participantDto->setInvitedBy( $result );
         }
+    }
 
-        foreach( [
-            self::SCHEDULEAGENT,
-            self::SCHEDULEFORCESEND,
-            self::SCHEDULESEQUENCE,
-            self::SCHEDULEUPDATED,
-            self::PROGRESSUPDATED,
-            self::PERCENTCOMPLETE,
-            self::PROGRESS ] as $key ) {
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @return void
+     */
+    private static function extractSentBy(
+        ArrayObject $pao,
+        ParticipantDto $participantDto
+    ) : void
+    {
+        if( isset( $pao->{IcalParticipant::SENT_BY} )) {
+            $participantDto->setSentBy(
+                self::removeMailtoPrefix( $pao->{IcalParticipant::SENT_BY} )
+            );
+        }
+    }
+
+    /**
+     * @param ArrayObject $pao
+     * @param ParticipantDto $participantDto
+     * @return void
+     */
+    private static function extractIcalParamsXprops(
+        ArrayObject $pao,
+        ParticipantDto $participantDto
+    ) : void
+    {
+        foreach( self::$SPECKEYS as $key ) {
             $key2      = self::setXPrefix( $key );
             if( ! isset( $pao->{$key2} )) {
                 continue;
@@ -590,20 +1138,13 @@ class Participant extends BaseIcal
             };
             $participantDto->{$setMethod}( $value );
         } // end foreach
-
-        if( isset( $pao->{IcalParticipant::SENT_BY} )) {
-            $participantDto->setSentBy(
-                self::removeMailtoPrefix( $pao->{IcalParticipant::SENT_BY} )
-            );
-        }
-
-        self::processIcalParamMultiEmail( $pao, $idEmailArr, $participantDto );
     }
 
     /**
      * @param ArrayObject $pao
      * @param array $idEmailArr
      * @param ParticipantDto $participantDto
+     * @return void
      */
     private static function processIcalParamMultiEmail(
         ArrayObject $pao,
@@ -635,6 +1176,5 @@ class Participant extends BaseIcal
     {
         static $PREFIX = 'set';
         return $PREFIX . ucfirst( $key );
-
     }
 }

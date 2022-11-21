@@ -64,14 +64,12 @@ class OffsetTrigger extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isOffsetSet()) {
             $jsonArray[self::OFFSET] = $dto->getOffset();
         }
         if( $dto->isRelativeToSet()) {
             $jsonArray[self::RELATIVETO] = $dto->getRelativeTo();
         }
-
         return $jsonArray;
     }
 }

@@ -58,19 +58,15 @@ class VirtualLocation extends BaseIcal
         }
         // mark as virtualLocation !!
         $vlocation->setXprop( self::setXPrefix( self::VIRTUALLOCATION ), 1 );
-
         if( $virtualLocationDto->isNameSet()) {
             $vlocation->setName( $virtualLocationDto->getName());
         }
-
         if( $virtualLocationDto->isDescriptionSet()) {
             $vlocation->setDescription( $virtualLocationDto->getDescription());
         }
-
         if( $virtualLocationDto->isUriSet()) {
             $vlocation->setUrl( $virtualLocationDto->getUri());
         }
-
         // array of "String[Boolean]"
         if( ! empty( $virtualLocationDto->getFeaturesCount())) {
             foreach( array_keys( $virtualLocationDto->getFeatures()) as $feature ) {
@@ -96,26 +92,21 @@ class VirtualLocation extends BaseIcal
         else {
             $id = $vlocation->getUid();
         }
-
         $virtualLocationDto = new VirtualLocationDto();
         if( $vlocation->isNameSet()) {
             $virtualLocationDto->setName( $vlocation->getName());
         }
-
         if( $vlocation->isDescriptionSet()) {
             $virtualLocationDto->setDescription( $vlocation->getDescription());
         }
-
         if( $vlocation->isUrlSet()) {
             $virtualLocationDto->setUri( $vlocation->getUrl());
         }
-
         foreach( $vlocation->getAllXprop() as $xProp ) {
             if( 0 === strcasecmp( self::unsetXPrefix( $xProp[0] ), $xProp[1] )) {
                 $virtualLocationDto->addFeature( $xProp[1] );
             }
         } // end foreach
-
         return [ $id, $virtualLocationDto ];
     }
 }

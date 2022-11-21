@@ -203,8 +203,9 @@ class RfcParseTest extends TestCase
     },
     "localizations": {
         "de": {
-            "title": "Live von der Music Bowl: The Band!",
-            "description": "Schau dir das größte Musikereignis an!",
+            "title": "Live von der Music Bowl: The Band!",' .
+/*          "description": "Schau dir das größte Musikereignis an!", // will end up in error  */'
+            "description": "Schau dir ein gross Musikereignis an!",' . /* will NOT end up in error */'
             "virtualLocations/vloc1/name": "Gratis Live-Stream aus der Music Bowl"
         }
     }
@@ -213,7 +214,7 @@ class RfcParseTest extends TestCase
 //            "description": "Schau dir das gr' . mb_chr( 0x00f6 ) . mb_chr( 0x00df ) . 'te Musikereignis an!",
 
 
-        // rfc 8984 6.9.  Recurring Event with Overrides
+        // rfc 8984 6.9.  Recurring Event with Overrides, other timezone
         $dataArr[] = [
             '6.9',
             '{
@@ -221,7 +222,7 @@ class RfcParseTest extends TestCase
     "uid": "2a358cee-6489-4f14-a57f-c104db4d-6-9",
     "title": "Calculus I",
     "start": "2020-01-08T09:00:00",
-    "timeZone": "Europe/London",
+    "timeZone": "Europe/Stockholm",
     "duration": "PT1H30M",
     "locations": {
         "mlab": {
@@ -234,7 +235,7 @@ class RfcParseTest extends TestCase
         {
             "@type": "RecurrenceRule",
             "frequency": "weekly",
-            "until": "2020-06-24T09:00:00"
+            "until": "2020-06-26T09:00:00"
         }
     ],
     "recurrenceOverrides": {
@@ -322,6 +323,70 @@ class RfcParseTest extends TestCase
 }'
         ];
 
+        // based on rfc 8984 6.10.  Recurring Event BUT with one Participant and one location
+        $dataArr[] = [
+            '6.10-L1',
+            '{
+    "@type": "Event",
+    "uid": "2a358cee-6489-4f14-a57f-c104b4-6-10-L1",
+    "title": "FooBar team meeting",
+    "start": "2020-01-08T09:00:00",
+    "timeZone": "Africa/Johannesburg",
+    "duration": "PT1H",
+    "locations": {
+        "Location 1": {
+            "@type": "Location",
+            "name": "Location 1"
+        }
+    },
+    "participants": {
+        "participant-1": {
+            "@type": "Participant",
+            "name": "Tom Tool",
+            "email": "tom@foobar.example.com",
+            "locationId": "Location 1"
+        }
+    }
+}'
+        ];
+
+        // based on rfc 8984 6.10.  Recurring Event BUT with two Participants, each with one unique location
+        $dataArr[] = [
+            '6.10-L2',
+            '{
+    "@type": "Event",
+    "uid": "2a358cee-6489-4f14-a57f-c104b4-6-10-L2",
+    "title": "FooBar team meeting",
+    "start": "2020-01-08T09:00:00",
+    "timeZone": "Africa/Johannesburg",
+    "duration": "PT1H",
+    "locations": {
+        "Location 1": {
+            "@type": "Location",
+            "name": "Location 1"
+        },
+        "Location 2": {
+            "@type": "Location",
+            "name": "Location 2"
+        }
+    },
+    "participants": {
+        "participant-1": {
+            "@type": "Participant",
+            "name": "Tom Tool",
+            "email": "tom@foobar.example.com",
+            "locationId": "Location 1"
+        },
+        "participant-2": {
+            "@type": "Participant",
+            "name": "John Doe",
+            "email": "john.doe@foobar.example.com",
+            "locationId": "Location 2"
+        }
+    }
+}'
+        ];
+
         return $dataArr;
     }
 
@@ -346,7 +411,7 @@ class RfcParseTest extends TestCase
 
         $jsonString2   = $phpJsCalendar->jsonWrite( $dto, true )->getJsonString();
 
-        $jsonString3 = str_replace(
+        $jsonString3   = str_replace(
             [
                 '            "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
                 '    "prodId": "Kigkonsult.se PhpJsCalendar ' . PhpJsCalendar::VERSION. '",' . PHP_EOL,
@@ -355,13 +420,12 @@ class RfcParseTest extends TestCase
             $jsonString2
         );
 
+//      error_log( 'case ' . $case . PHP_EOL . $jsonString3 ); // test ###
         $this->assertSame(
             $jsonString,
             $jsonString3,
             'diff error in #1-' . $case . '-1'
         );
-
-//      error_log( 'case ' . $case . PHP_EOL . $jsonString3 ); // test ###
     }
 
     /**
@@ -374,7 +438,7 @@ class RfcParseTest extends TestCase
      */
     public function parseIcalTest( string $case, string $jsonString ) : void
     {
-//      error_log( __FUNCTION__ . ' case : ' . $case ); // test ###
+//      error_log( __FUNCTION__ . ' case : 2-' . $case ); // test ###
 
         $phpJsCalendar = PhpJsCalendar::factory( $jsonString );
 
@@ -398,14 +462,12 @@ class RfcParseTest extends TestCase
             '',
             $jsonString2
         );
-
-//      error_log( $vcalendar->createCalendar()); // test ###
+//      error_log( $jsonString3 ); // test ###
 
         $this->assertSame(
             $jsonString,
             $jsonString3,
             'diff error in #2-' . $case . '-1'
         );
-//      error_log( $jsonString3 ); // test ###
     }
 }

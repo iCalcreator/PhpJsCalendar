@@ -132,9 +132,10 @@ abstract class BaseDto implements DtoInterface
         ? bool $asLocalDateTime = true
     ) : DateTime
     {
+        static $NOW = 'now';
         static $UTC = 'UTC';
         if( $input instanceof DateTimeImmutable ) {
-            $dtTmp = new DateTime( null, $input->getTimezone());
+            $dtTmp = new DateTime( $NOW, $input->getTimezone());
             $dtTmp->setTimestamp( $input->getTimestamp());
             $input = $dtTmp;
         }

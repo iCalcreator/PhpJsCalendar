@@ -128,23 +128,18 @@ class RecurrenceRule extends BaseJson
         if( $dto->isFrequencySet()) {
             $jsonArray[self::FREQUENCY] = $dto->getFrequency();
         }
-
         if( $dto->isIntervalSet()) { // Note not empty
             $jsonArray[self::INTERVAL] = $dto->getInterval();
         }
-
         if( $dto->isRscaleSet()) {
             $jsonArray[self::RSCALE] = $dto->getRscale();
         }
-
         if( $dto->isSkipSet()) {
             $jsonArray[self::SKIP] = $dto->getSkip();
         }
-
         if( $dto->isFirstDayOfWeekSet()) {
             $jsonArray[self::FIRSTDAYOFWEEK] = $dto->getFirstDayOfWeek();
         }
-
         // array of "NDay[]"
         if( ! empty( $dto->getByDayCount())) {
             foreach( $dto->getByDay() as $x => $nday ) {
@@ -194,11 +189,9 @@ class RecurrenceRule extends BaseJson
         if( $dto->isCountSet()) { // Note empty !!
             $jsonArray[self::COUNT] = $dto->getCount();
         }
-
         if( $dto->isUntilSet()) {
             $jsonArray[self::UNTIL] = $dto->getUntil();
         }
-
         return $jsonArray;
     }
 }

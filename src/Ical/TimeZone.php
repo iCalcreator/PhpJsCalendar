@@ -50,7 +50,6 @@ class TimeZone extends BaseIcal
         static$S   = '/';
         $vtimezone = new IcalVtimezone();
         $vtimezone->setTzid( $timeZoneDto->getTzId() ?: ltrim( $id, $S ));
-
         if( $timeZoneDto->isUpdatedSet()) {
             $vtimezone->setLastmodified( $timeZoneDto->getUpdated());
         }
@@ -95,26 +94,20 @@ class TimeZone extends BaseIcal
     ) : TimeZoneDto
     {
         $timeZoneDto = new TimeZoneDto();
-
         $timeZoneDto->setTzId( $vtimezone->isTzidSet() ? $vtimezone->getTzid() : $timeZoneId );
-
         if( $vtimezone->isLastmodifiedSet()) {
             $timeZoneDto->setUpdated( $vtimezone->getLastmodified());
         }
-
         if( $vtimezone->isTzurlSet()) {
             $timeZoneDto->setUrl( $vtimezone->getTzurl());
         }
-
         if( $vtimezone->isTzuntilSet()) {
             $timeZoneDto->setValidUntil( $vtimezone->getTzuntil());
         }
-
         // array of "String[Boolean]"
         foreach( $vtimezone->getAllTzidaliasof() as $tzidAliasOf ) {
             $timeZoneDto->addAlias( $tzidAliasOf );
         }
-
         // arrays of "TimeZoneRule[]"
         foreach( $vtimezone->getComponents() as $component ) {
             $timezoneRule = TimeZoneRule::processFromIcal( $component );
@@ -124,8 +117,7 @@ class TimeZone extends BaseIcal
             elseif( $component instanceof IcalDaylight ) {
                 $timeZoneDto->addDaylight( $timezoneRule );
             }
-        }
-
+        } // end foreach
         return $timeZoneDto;
     }
 }

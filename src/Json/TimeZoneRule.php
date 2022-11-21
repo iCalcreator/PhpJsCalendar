@@ -87,15 +87,12 @@ class TimeZoneRule extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isStartSet()) {
             $jsonArray[self::START] = $dto->getStart();
         }
-
         if( $dto->isOffsetFromSet()) {
             $jsonArray[self::OFFSETFROM] = $dto->getOffsetFrom();
         }
-        
         if( $dto->isOffsetToSet()) {
             $jsonArray[self::OFFSETTO] = $dto->getOffsetTo();
         }

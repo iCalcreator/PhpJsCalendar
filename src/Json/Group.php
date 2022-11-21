@@ -73,9 +73,7 @@ class Group extends BaseGroupEventTask
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         parent::groupEventTaskWrite( $dto, $jsonArray );
-
         // array of "(Task|Event)[]"
         if( ! empty( $dto->getEntriesCount())) {
             foreach( $dto->getEntries() as $entry ) {
@@ -87,11 +85,9 @@ class Group extends BaseGroupEventTask
                 }
             }
         }
-
         if( $dto->isSourceSet()) {
             $jsonArray[self::SOURCE] = $dto->getSource();
         }
-
         return self::orderElements( Dto::$ElementOrder, $jsonArray );
     }
 }

@@ -148,65 +148,51 @@ class Participant extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isNameSet()) {
             $jsonArray[self::NAME] = $dto->getName();
         }
-
         if( $dto->isEmailSet()) {
             $jsonArray[self::EMAIL] = $dto->getEmail();
         }
-
         if( $dto->isDescriptionSet()) {
             $jsonArray[self::DESCRIPTION] = $dto->getDescription();
         }
-
         // array of "String[String]"
         if( ! empty( $dto->getSendToCount())) {
             foreach( $dto->getSendTo() as $method => $uri ) {
                 $jsonArray[self::SENDTO][$method] = $uri;
             }
         }
-
         if( $dto->isKindSet()) {
             $jsonArray[self::KIND] = $dto->getKind();
         }
-
         // array of "String[Boolean]"
         if( ! empty( $dto->getRolesCount())) {
             foreach( $dto->getRoles() as $role => $bool ) {
                 $jsonArray[self::ROLES][$role] = $bool;
             }
         }
-
         if( $dto->isLocationIdSet()) {
             $jsonArray[self::LOCATIONID] = $dto->getLocationId();
         }
-
         if( $dto->isLanguageSet()) {
             $jsonArray[self::LANGUAGE] = $dto->getLanguage();
         }
-
         if( $dto->isParticipationStatusSet()) {
             $jsonArray[self::PARTICIPATIONSTATUS] = $dto->getParticipationStatus();
         }
-
         if( $dto->isParticipationCommentSet()) {
             $jsonArray[self::PARTICIPATIONCOMMENT] = $dto->getParticipationComment();
         }
-
         if( $dto->isExpectReplySet() && $dto->getExpectReply()) { // skip default false
             $jsonArray[self::EXPECTREPLY] = self::phpBool2Json( true );
         }
-
         if( $dto->isScheduleAgentSet()) {
             $jsonArray[self::SCHEDULEAGENT] = $dto->getScheduleAgent();
         }
-
         if( $dto->isScheduleForceSendSet() && $dto->getScheduleForceSend()) { // skip default false
             $jsonArray[self::SCHEDULEFORCESEND] = self::phpBool2Json( $dto->getScheduleForceSend());
         }
-
         if( $dto->isScheduleSequenceSet()) {
             $jsonArray[self::SCHEDULESEQUENCE] = $dto->getScheduleSequence();
         }
@@ -216,15 +202,12 @@ class Participant extends BaseJson
                 $jsonArray[self::SCHEDULESTATUS][$x] = $value;
             }
         }
-
         if( $dto->isScheduleUpdatedSet()) {
             $jsonArray[self::SCHEDULEUPDATED] = $dto->getScheduleUpdated();
         }
-
         if( $dto->isSentBySet()) {
             $jsonArray[self::SENTBY] = $dto->getSentBy();
         }
-
         if( $dto->isInvitedBySet()) {
             $jsonArray[self::INVITEDBY] = $dto->getInvitedBy();
         }
@@ -253,7 +236,6 @@ class Participant extends BaseJson
                 $jsonArray[self::LINKS]->{$lid} = Link::write( $lid, $link );
             }
         }
-
         if( $dto->isProgressSet()) {
             $jsonArray[self::PROGRESS] = $dto->getProgress();
         }
@@ -263,7 +245,6 @@ class Participant extends BaseJson
         if( $dto->isPercentCompleteSet()) {
             $jsonArray[self::PERCENTCOMPLETE] = $dto->getPercentComplete();
         }
-
         return $jsonArray;
     }
 }

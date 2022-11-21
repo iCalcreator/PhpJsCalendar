@@ -59,44 +59,50 @@ class Alert extends BaseIcal
     ) : void
     {
         $iCalAlarm->setUid( $id );
-
         if( $alertDto->isActionSet()) {
             $iCalAlarm->setAction( $alertDto->getAction( false ));
         }
-
         if( $alertDto->isTriggerSet()) {
-            $trigger = $alertDto->getTrigger();
-            switch( true ) {
-                case $trigger instanceof AbsoluteTriggerDto : // No Ical/AbsoluteTrigger
-                    $iCalAlarm->setTrigger( $trigger->getWhen( false ) );
-                    break;
-                case $trigger instanceof OffsetTriggerDto : // No Ical/OffsetTrigger
-                    $relativeTo = $trigger->isRelativeToSet()
-                        ? $trigger->getRelativeTo()
-                        : OffsetTriggerDto::$relativeToDefault;
-                    $iCalAlarm->setTrigger(
-                        $trigger->getOffset(),
-                        [ IcalValarm::RELATED => $relativeTo ]
-                    );
-                    break;
-                case $trigger instanceof UnknownTriggerDto : // NO Ical/UnknownTriggerDto
-                    foreach( $trigger->getProperties() as $key => $value ) {
-                        $iCalAlarm->setXprop( self::setXPrefix( $key ), $value );
-                    }
-                    break;
-            } // end switch
-        } // end if
-
+            self::extractJsTrigger( $alertDto, $iCalAlarm );
+        }
         if( $alertDto->isAcknowledgedSet()) {
             $iCalAlarm->setAcknowledged( $alertDto->getAcknowledged());
         }
-
         // array of "String[Relation]"
         if( ! empty( $alertDto->getRelatedToCount())) {
             foreach( $alertDto->getRelatedTo() as $uid => $relation ) {
                 $iCalAlarm->setRelatedto( $uid, Relation::processToIcalXparams( $relation ));
             }
         } // end if
+    }
+
+    /**
+     * @param AlertDto $alertDto
+     * @param IcalValarm $iCalAlarm
+     * @throws Exception
+     */
+    private static function extractJsTrigger( AlertDto $alertDto, IcalValarm $iCalAlarm ) : void
+    {
+        $trigger = $alertDto->getTrigger();
+        switch( true ) {
+            case $trigger instanceof AbsoluteTriggerDto : // No Ical/AbsoluteTrigger
+                $iCalAlarm->setTrigger( $trigger->getWhen( false ) );
+                break;
+            case $trigger instanceof OffsetTriggerDto : // No Ical/OffsetTrigger
+                $relativeTo = $trigger->isRelativeToSet()
+                    ? $trigger->getRelativeTo()
+                    : OffsetTriggerDto::$relativeToDefault;
+                $iCalAlarm->setTrigger(
+                    $trigger->getOffset(),
+                    [ IcalValarm::RELATED => $relativeTo ]
+                );
+                break;
+            case $trigger instanceof UnknownTriggerDto : // NO Ical/UnknownTriggerDto
+                foreach( $trigger->getProperties() as $key => $value ) {
+                    $iCalAlarm->setXprop( self::setXPrefix( $key ), $value );
+                }
+                break;
+        } // end switch
     }
 
     /**
@@ -110,29 +116,7 @@ class Alert extends BaseIcal
     {
         $alertDto = new AlertDto();
         $id       = $icalValarm->getUid();
-        $trigger  = new UnknownTriggerDto();
-        if( ! $icalValarm->isTriggerSet()) {
-            foreach( $icalValarm->getAllXprop() as $xProp ) {
-                $trigger->addProperty( self::unsetXPrefix( $xProp[0] ), $xProp[1] );
-            }
-        } // end if isTriggerSet
-        else {
-            $triggerContent = $icalValarm->getTrigger( true );
-            if( $triggerContent->getValue() instanceof DateTime ) {
-                $trigger = AbsoluteTriggerDto::factoryWhen( $triggerContent->getValue() );
-            }
-            elseif( $triggerContent->getValue() instanceof DateInterval ) {
-                $trigger = OffsetTriggerDto::factoryOffset( $triggerContent->getValue());
-                if( $triggerContent->hasParamKey( IcalValarm::RELATED )) {
-                    $relativeTo = strtolower( $triggerContent->getParams( IcalValarm::RELATED ));
-                    if( OffsetTriggerDto::$relativeToDefault !== $relativeTo ) { // skip default
-                        $trigger->setRelativeTo( $relativeTo );
-                    }
-                } // end if
-            } // end else
-        } // end else
-        $alertDto->setTrigger( $trigger );
-
+        self:: extractIcallarmTrigger( $icalValarm, $alertDto );
         if( $icalValarm->isActionSet()) {
             $alertDto->setAction( strtolower( $icalValarm->getAction()));
         }
@@ -144,5 +128,40 @@ class Alert extends BaseIcal
             $alertDto->addRelatedTo( $uid, $relation );
         } // end foreach
         return [ $id, $alertDto ];
+    }
+
+    /**
+     * @param IcalComponent|IcalValarm $icalValarm
+     * @param AlertDto $alertDto
+     * @throws Exception
+     */
+    private static function extractIcallarmTrigger(
+        IcalComponent|IcalValarm $icalValarm,
+        AlertDto $alertDto
+    ) : void
+    {
+        if( ! $icalValarm->isTriggerSet()) {
+            $trigger  = new UnknownTriggerDto();
+            foreach( $icalValarm->getAllXprop() as $xProp ) {
+                $trigger->addProperty( self::unsetXPrefix( $xProp[0] ), $xProp[1] );
+            }
+            $alertDto->setTrigger( $trigger );
+            return;
+        } // end if not isTriggerSet
+        $triggerContent = $icalValarm->getTrigger( true );
+        if( $triggerContent->getValue() instanceof DateTime ) {
+            $alertDto->setTrigger( AbsoluteTriggerDto::factoryWhen( $triggerContent->getValue()));
+            return;
+        }
+        if( $triggerContent->getValue() instanceof DateInterval ) {
+            $trigger = OffsetTriggerDto::factoryOffset( $triggerContent->getValue());
+            if( $triggerContent->hasParamKey( IcalValarm::RELATED )) {
+                $relativeTo = strtolower( $triggerContent->getParams( IcalValarm::RELATED ));
+                if( OffsetTriggerDto::$relativeToDefault !== $relativeTo ) { // skip default
+                    $trigger->setRelativeTo( $relativeTo );
+                }
+            } // end if
+            $alertDto->setTrigger( $trigger );
+        } // end if
     }
 }

@@ -85,34 +85,27 @@ class Location extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isNameSet()) {
             $jsonArray[self::NAME] = $dto->getName();
         }
-
         if( $dto->isDescriptionSet()) {
             $jsonArray[self::DESCRIPTION] = $dto->getDescription();
         }
-
         // array of "String[Boolean]"
         if( ! empty( $dto->getLocationTypesCount())) {
             foreach( $dto->getLocationTypes() as $locationType => $bool ) {
                 $jsonArray[self::LOCATIONTYPES][$locationType] = $bool;
             }
         }
-
         if( $dto->isRelativeToSet()) {
             $jsonArray[self::RELATIVETO] = $dto->getRelativeTo();
         }
-
         if( $dto->isTimeZoneSet()) {
             $jsonArray[self::TIMEzONE] = $dto->getTimeZone();
         }
-
         if( $dto->isCoordinatesSet()) {
             $jsonArray[self::COORDINATES] = $dto->getCoordinates();
         }
-
         // array of "Id[Link]"
         if( ! empty( $dto->getLinksCount())) {
             $jsonArray[self::LINKS] = new stdClass();

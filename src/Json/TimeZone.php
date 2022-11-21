@@ -83,22 +83,18 @@ class TimeZone extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isTzIdSet()) {
             $jsonArray[self::TZID] = $dto->getTzId();
         }
         if( $dto->isUpdatedSet()) {
             $jsonArray[self::UPDATED] = $dto->getUpdated();
         }
-
         if( $dto->isUrlSet()) {
             $jsonArray[self::URL] = $dto->getUrl();
         }
-
         if( $dto->isValidUntilSet()) {
             $jsonArray[self::VALIDUNTIL] = $dto->getValidUntil();
         }
-
         // ara of "String[Boolean]"
         if( ! empty( $dto->getAliasesCount())) {
             foreach( $dto->getAliases() as $alias => $bool ) {
@@ -116,7 +112,6 @@ class TimeZone extends BaseJson
                 $jsonArray[self::DAYLIGHT][$x] = (object)TimeZoneRule::write( $daylight );
             }
         }
-
         return $jsonArray;
     }
 }

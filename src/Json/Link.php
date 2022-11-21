@@ -77,33 +77,26 @@ class Link extends BaseJson
     public static function write( string $lid, Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isHrefSet()) {
             $jsonArray[self::HREF] = $dto->getHref();
         }
-
         $cid     = $dto->getCid();
         if( $cid !== $lid ) {
             $cid = $lid;
         }
         $jsonArray[self::CID] = $cid;
-
         if( $dto->isContentTypeSet()) {
             $jsonArray[self::CONTENTTYPE] = $dto->getContentType();
         }
-
         if( $dto->isSizeSet()) {
             $jsonArray[self::SIZE] = $dto->getSize();
         }
-
         if( $dto->isRelSet()) {
             $jsonArray[self::REL] = $dto->getRel();
         }
-
         if( $dto->isDisplaySet()) {
             $jsonArray[self::DISPLAY] = $dto->getDisplay();
         }
-
         if( $dto->isTitleSet()) {
             $jsonArray[self::TITLE] = $dto->getTitle();
         }

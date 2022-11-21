@@ -56,7 +56,6 @@ abstract class BaseGroupEventTask extends BaseIcal
         if( ! empty( $value )) {
             $iCalComp->setUid( $value);
         }
-
         if( $dto->isCreatedSet()) {
             if( $isVeventVtodo ) {
                 $iCalComp->setCreated( $dto->getCreated());
@@ -65,11 +64,9 @@ abstract class BaseGroupEventTask extends BaseIcal
                 $iCalComp->setXprop( self::setXPrefix( self::CREATED ), $dto->getCreated( true ));
             }
         }
-
         if( $dto->isUpdatedSet()) {
             $iCalComp->setLastModified( $dto->getUpdated());
         }
-
         $params = [];
         if( $dto->isLocaleSet()) {
             $params[iCalVcalendar::LANGUAGE] = $dto->getLocale();
@@ -83,23 +80,19 @@ abstract class BaseGroupEventTask extends BaseIcal
                 $iCalComp->setName( $value, $params );
             }
         }
-
         if( $dto->isColorSet()) {
             $iCalComp->setColor( $dto->getColor());
         }
-
         // array of "String[Boolean]"
         if(  ! empty( $dto->getCategoriesCount())) {
             foreach( array_keys( $dto->getCategories()) as $category ) {
                 $iCalComp->setCategories( $category, $params );
             }
         }
-
         // array of "Id[Link]"   to iCal IMAGE/STRUCTURED_DATA
         if( ! empty( $dto->getLinksCount())) {
             Link::processLinksToIcal( $dto->getLinks(), $iCalComp );
         }
-
         // array of "String[Boolean]"
         if( ! empty( $dto->getKeywordsCount())) {
             $iCalComp->setXprop(
@@ -124,7 +117,6 @@ abstract class BaseGroupEventTask extends BaseIcal
     {
         $isVcalendar = $iCalComp instanceof IcalVcalendar;
         $dto->setUid( $iCalComp->getUid());
-
         $key = self::setXPrefix( self::CREATED );
         if( $isVcalendar && $iCalComp->isXpropSet( $key )) {
             $dto->setCreated( $iCalComp->getXprop( $key )[1] );
@@ -135,7 +127,6 @@ abstract class BaseGroupEventTask extends BaseIcal
         if( $iCalComp->isLastmodifiedSet()) {
             $dto->setUpdated( $iCalComp->getLastmodified());
         }
-
         $locale = null;
         if( ! $isVcalendar && $iCalComp->isSummarySet()) {
             $summary = $iCalComp->getSummary( true );
@@ -151,26 +142,20 @@ abstract class BaseGroupEventTask extends BaseIcal
                 $locale = $name->getParams( iCalVcalendar::LANGUAGE );
             }
         }
-
         if( ! empty( $locale )) {
             $dto->setLocale( $locale );
         }
-
         foreach( $iCalComp->getAllCategories() as $value ) {
             $dto->addCategory( $value, true );
         }
-
         if( $iCalComp->isColorSet()) {
             $dto->setColor( $iCalComp->getColor());
         }
-
         if( ! $isVcalendar && $iCalComp->isCreatedSet()) {
             $dto->setCreated( $iCalComp->getCreated());
         }
-
         // iCal IMAGE + STRUCTURED_DATA to links
         Link::processLinksFromIcal( $iCalComp, $dto );
-
         $keywordKey = self::setXPrefix( self::KEYWORDS );
         if( $iCalComp->isXpropSet( $keywordKey )) {
             $dto->setKeywords(

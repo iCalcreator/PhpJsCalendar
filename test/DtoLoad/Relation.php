@@ -43,9 +43,10 @@ class Relation extends BaseDtoLad
     {
         static $RELATIONS = [ 'first', 'next', 'child', 'parent' ];
         $faker = Faker\Factory::create();
-        return ( 1 === $faker->randomElement( [ 1, 2 ] ))
-            ? Dto::factoryRelation( $faker->randomElement( $RELATIONS ))
-            : ( new Dto )
-                ->setRelation( $faker->randomElements( [ 'first', 'next', 'child', 'parent' ], 1 ), true );
+        $dto   = Dto::factoryRelation( $faker->randomElement( $RELATIONS ));
+        if( 1 === $faker->randomElement( [ 1, 2 ] )) {
+            $dto->setRelation( [ 'main' => true, ] );
+        }
+        return $dto;
     }
 }

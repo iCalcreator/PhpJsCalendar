@@ -70,19 +70,15 @@ class VirtualLocation extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         if( $dto->isNameSet()) {
             $jsonArray[self::NAME] = $dto->getName();
         }
-
         if( $dto->isDescriptionSet()) {
             $jsonArray[self::DESCRIPTION] = $dto->getDescription();
         }
-
         if( $dto->isUriSet()) {
             $jsonArray[self::URI] = $dto->getUri();
         }
-
         // array of "String[Boolean]"
         if( ! empty( $dto->getFeaturesCount())) {
             foreach( $dto->getFeatures() as $feature => $bool ) {

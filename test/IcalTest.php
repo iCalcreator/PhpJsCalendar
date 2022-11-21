@@ -53,6 +53,7 @@ class IcalTest extends TestCase
             "BEGIN:VCALENDAR\r\n" .
             "VERSION:2.0\r\n" .
             "PRODID:-//ShopReply Inc//CalReply 1.0//EN\r\n" .
+            "UID:601\r\n" .
             "METHOD:REFRESH\r\n" .
             "SOURCE;x-a=first;VALUE=uri:message://https://www.masked.de/account/subscripti\r\n" .
             " /delivery/8878/%3Fweek=2021-W03\r\n" .
@@ -81,7 +82,11 @@ class IcalTest extends TestCase
             "UID:e2317772-f3a2-42cf-a5ac-e639fb6b2af0\r\n" .
             "CLASS:PUBLIC\r\n" .
             "TRANSP:TRANSPARENT\r\n" .
-            "SUMMARY:⚽ English FA Cup on ESPN+\r\n" .
+//          "SUMMARY:⚽ English FA Cup on ESPN+\r\n" .
+            "SUMMARY:This will result in test error on Vcalendar SOURCE and X-props," .
+            " VTIMEZONE TZURL, " .
+            " VEVENT DTSTAMP, LOCATION, TRANSP, URL and" .
+            " VALARM DESCRIPTION" . "\r\n" .
             "DTSTART;TZID=\"America/New_York\":20190316T081500\r\n" .
             "DTEND;TZID=\"America/New_York\":20190316T091500\r\n" .
             'DESCRIPTION:Watch live: http://bit.ly/FACuponEPlus\n\nNot an ESPN+ subscrib' . "\r\n\t" .
@@ -111,15 +116,19 @@ class IcalTest extends TestCase
         $dataArr[] = [
             611,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:611\r\n" .
             "BEGIN:VEVENT\r\n" .
             "CREATED:20200215T145739Z\r\n" .
-            "DESCRIPTION: Piano Sonata No 3\n\r\n" .
-            " Piano Sonata No 30\r\n" .
+            "DESCRIPTION: Piano Sonata No 3\r\n" .
             "DTSTAMP:20200215T145739Z\r\n" .
             "DTSTART;TZID=America/New_York:20200315T150000Z\r\n" .
             "DTEND;TZID=America/New_York:20200315T163000Z\r\n" .
             "LAST-MODIFIED:20200216T145739Z\r\n" .
-            "SUMMARY:Beethoven Piano Sonatas\r\n" .
+//          "SUMMARY:Beethoven Piano Sonatas\r\n" .
+            "SUMMARY:This will result in test error on " .
+            " VEVENT DTSTAMP, IMAGE, X-prop and" .
+            " PARTICIPANT LOCATION+VLOCATION" .
+            " VEVENT VLOCATION" . "\r\n" .
             "UID:123456\r\n" .
             "IMAGE;VALUE=URI;DISPLAY=BADGE;FMTTYPE=image/png:h\r\n" .
             " ttp://example.com/images/concert.png\r\n" .
@@ -158,8 +167,13 @@ class IcalTest extends TestCase
         $dataArr[] = [
             612,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:612\r\n" .
             "BEGIN:VEVENT\r\n" .
             "UID:123456\r\n" .
+            "SUMMARY:This will result in test error on" .
+            " VEVENT DTSTAMP, IMAGE, X-prop and" .
+            " PARTICIPANT STRUCTURED-DATA and" .
+            " VLOCATIONs STRUCTURED-DATA" . "\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/event.vcf\r\n" .
             "BEGIN:PARTICIPANT\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://example.com/participant1.vcf\r\n" .
@@ -184,13 +198,18 @@ class IcalTest extends TestCase
         $dataArr[] = [
             621,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:621\r\n" .
             "BEGIN:VEVENT\r\n" .
             "CREATED:20200215T145739Z\r\n" .
             "DTSTAMP:20200215T145739Z\r\n" .
             "DTSTART;TZID=America/New_York:20200315T150000Z\r\n" .
             "DTEND;TZID=America/New_York:20200315T163000Z\r\n" .
             "LAST-MODIFIED:20200216T145739Z\r\n" .
-            "SUMMARY:Conference planning\r\n" .
+//          "SUMMARY:Conference planning\r\n" .
+            "SUMMARY:This will result in test error on" .
+            " VEVENT DTSTAMP, ATTENDEE, LOCATION and" .
+            " PARTICIPANT and" .
+            " VLOCATION" . "\r\n" .
             "UID:123456\r\n" .
             "ORGANIZER:mailto:a@example.com\r\n" .
             "ATTENDEE;PARTSTAT=ACCEPTED;CN=Aname:mailto:a@example.com\r\n" .
@@ -210,6 +229,7 @@ class IcalTest extends TestCase
         $dataArr[] = [
             631,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:631\r\n" .
             "X-TEST:631\r\n" .
             "BEGIN:VEVENT\r\n" .
             "CREATED:20200215T145739Z\r\n" .
@@ -217,7 +237,10 @@ class IcalTest extends TestCase
             "DTSTART;TZID=America/New_York:20200315T150000Z\r\n" .
             "DTEND;TZID=America/New_York:20200315T163000Z\r\n" .
             "LAST-MODIFIED:20200216T145739Z\r\n" .
-            "SUMMARY:Conference planning\r\n" .
+//          "SUMMARY:Conference planning\r\n" .
+            "SUMMARY:This will result in test error on" .
+            " VEVENT DTSTAMP and" .
+            " PARTICIPANT " . "\r\n" .
             "UID:123456\r\n" .
             "BEGIN:PARTICIPANT\r\n" .
             "PARTICIPANT-TYPE:ACTIVE\r\n" .
@@ -241,6 +264,7 @@ class IcalTest extends TestCase
         $dataArr[] = [
             641,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:641\r\n" .
             "X-TEST:641\r\n" .
 
             "BEGIN:VEVENT\r\n" .
@@ -249,7 +273,10 @@ class IcalTest extends TestCase
             "DTSTAMP:20210302T151516Z\r\n" .
             "DTSTART;TZID=America/New_York:20210302T103000\r\n" .
             "DTEND;TZID=America/New_York:20210302T113000\r\n" .
-            "SUMMARY:Meeting\r\n" .
+//          "SUMMARY:Meeting\r\n" .
+            "SUMMARY:This will result in test error on" .
+            " VEVENT DTSTAMP and" .
+            " VALARM and its VLOCATION " . "\r\n" .
             "BEGIN:VALARM\r\n" .
             "UID:8297C37D-BA2D-4476-91AE-C1EAA364F8E1\r\n" .
             "TRIGGER:-PT15M\r\n" .
@@ -320,6 +347,7 @@ class IcalTest extends TestCase
         $dataArr[] = [
             641,
             "BEGIN:VCALENDAR\r\n" .
+            "UID:641\r\n" .
             "X-TEST:641\r\n" .
             "BEGIN:VEVENT\r\n" .
             "CREATED:20200215T145739Z\r\n" .
@@ -354,7 +382,7 @@ class IcalTest extends TestCase
     }
 
     /**
-     * Testing ical to dto to ical again
+     * Testing ical to dto to ical again, most (all) will result in error
      *
      * @test
      * @dataProvider iCal2dto2iCalTestProvider
@@ -384,8 +412,9 @@ class IcalTest extends TestCase
 
         $this->assertSame( $iCalString1, $iCalString2, __FUNCTION__ . ' error case ' . $case . '-2' );
 
-        // error_log( $c->createCalendar()); // test ###
+//      error_log( $c->createCalendar()); // test ###
     }
+
     /**
      * iCal2dto2iCalTest2 provider
      *
@@ -395,9 +424,132 @@ class IcalTest extends TestCase
     {
         $dataArr = [];
 
-        // STRUCTURED-DATA test Vevent
+        // DURATION test Vevent, exp ok
+        $dataArr[] = [
+            701,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-701\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:VEVENT-1\r\n" .
+            "DURATION:PT1H\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // DURATION test Vtodo, exp ok
+        $dataArr[] = [
+            702,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-702\r\n" .
+            "BEGIN:VTODO\r\n" .
+            "UID:VTODO-1\r\n" .
+            "DURATION:PT1H\r\n" .
+            "END:VTODO\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // DTSTART+DURATION test Vevent, exp ( duration -> ) DTEND
+        $dataArr[] = [
+            706,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-706\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:VEVENT-1\r\n" .
+            "DTSTART:20221111T11111\r\n" .
+            "DURATION:PT1H\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // DTSTART+DURATION test Vtodo, exp ok
+        $dataArr[] = [
+            707,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-707\r\n" .
+            "BEGIN:VTODO\r\n" .
+            "UID:VTODO-1\r\n" .
+            "DTSTART:20221111T11111\r\n" .
+            "DURATION:PT1H\r\n" .
+            "END:VTODO\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+
+        // LOCATION test Vevent, exp err, LOCATION -> VLOCATION
         $dataArr[] = [
             712,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-712\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:VEVENT-1\r\n" .
+            "DURATION:PT1H\r\n" .
+            "LOCATION:Location-1\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // LOCATION test Participant, exp err, LOCATION -> VLOCATION
+        $dataArr[] = [
+            722,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-722\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:VEVENT-1\r\n" .
+            "LOCATION:Location-1\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "UID:PARTICIPANT-1\r\n" .
+            "LOCATION:Participant-Location-1\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+        // LOCATION test Vlocation, exp err, LOCATION
+        $dataArr[] = [
+            732,
+            "BEGIN:VCALENDAR\r\n" .
+            "UID:VCALENDAR-732\r\n" .
+            "BEGIN:VEVENT\r\n" .
+            "UID:VEVENT-1\r\n" .
+            "LOCATION:Vevent-1-Vlocation-1-Name\r\n" .
+            "BEGIN:PARTICIPANT\r\n" .
+            "UID:PARTICIPANT-1\r\n" .
+            "LOCATION:Participant-1-Vlocation-1-Name\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "UID:PARTICIPANT-1-VLOCATION-1\r\n" .
+            "NAME:Participant-1-Vlocation-1-Name\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:PARTICIPANT\r\n" .
+            "BEGIN:VLOCATION\r\n" .
+            "UID:VEVENT-1-VLOCATION-1\r\n" .
+            "NAME:Vevent-1-Vlocation-1-Name\r\n" .
+            "END:VLOCATION\r\n" .
+            "END:VEVENT\r\n" .
+            "END:VCALENDAR\r\n"
+        ];
+
+        return $dataArr;
+    }
+
+    /**
+     * Same as parseIcalTest BUT startdate/duration - LOCATION/NAME iCal comp property tests
+     *
+     * @test
+     * @dataProvider iCal2dto2iCalTest2Provider
+     * @param int $case
+     * @param string $iCalString
+     */
+    public function iCal2dto2iCalTest2( int $case, string $iCalString ) : void
+    {
+        $this->iCal2dto2iCalTest( $case, $iCalString );
+    }
+
+    /**
+     * iCal2dto2iCalTest3 provider
+     *
+     * @return mixed[]
+     */
+    public function iCal2dto2iCalTest3Provider() : array
+    {
+        $dataArr = [];
+
+        // STRUCTURED-DATA test Vevent
+        $dataArr[] = [
+            812,
             "BEGIN:VCALENDAR\r\n" .
             "BEGIN:VEVENT\r\n" .
             "UID:123456\r\n" .
@@ -408,7 +560,7 @@ class IcalTest extends TestCase
         ];
         // STRUCTURED-DATA test Participant
         $dataArr[] = [
-            722,
+            822,
             "BEGIN:VCALENDAR\r\n" .
             "BEGIN:VEVENT\r\n" .
             "UID:123456\r\n" .
@@ -422,18 +574,20 @@ class IcalTest extends TestCase
         ];
         // STRUCTURED-DATA test Vlocation
         $dataArr[] = [
-            732,
+            832,
             "BEGIN:VCALENDAR\r\n" .
             "BEGIN:VEVENT\r\n" .
-            "UID:123456\r\n" .
+            "UID:VEVENT-1\r\n" .
             "BEGIN:PARTICIPANT\r\n" .
-            "UID:123456\r\n" .
+            "UID:PARTICIPANT1\r\n" .
             "BEGIN:VLOCATION\r\n" .
+            "UID:VLOCATION-P\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant1/vlocation1.vcf\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/participant1/vlocation2.vcf\r\n" .
             "END:VLOCATION\r\n" .
             "END:PARTICIPANT\r\n" .
             "BEGIN:VLOCATION\r\n" .
+            "UID:VEVENT-1\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/vevent/vlocation1.vcf\r\n" .
             "STRUCTURED-DATA;VALUE=URI:http://dir.example.com/vevent/vlocation2.vcf\r\n" .
             "END:VLOCATION\r\n" .
@@ -445,14 +599,14 @@ class IcalTest extends TestCase
     }
 
     /**
-     * Same as parseIcalTest BUT spec iCal comp property tests
+     * Same as parseIcalTest BUT STRUCTURED-DATA iCal comp property tests
      *
      * @test
-     * @dataProvider iCal2dto2iCalTest2Provider
+     * @dataProvider iCal2dto2iCalTest3Provider
      * @param int $case
      * @param string $iCalString
      */
-    public function iCal2dto2iCalTest2( int $case, string $iCalString ) : void
+    public function iCal2dto2iCalTest3( int $case, string $iCalString ) : void
     {
         $this->iCal2dto2iCalTest( $case, $iCalString );
     }

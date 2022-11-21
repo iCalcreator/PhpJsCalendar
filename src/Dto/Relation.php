@@ -36,7 +36,7 @@ final class Relation extends BaseDto
      *
      * The relation is defined as a set of relation types
      * "first":  The linked object is the first in a series the linking object is part of.
-     * "next":   The linked object is next in a series the linking objectis part of.
+     * "next":   The linked object is next in a series the linking object is part of.
      * "child":  The linked object is a subpart of the linking object.
      * "parent": The linking object is a subpart of the linked object.
      * OR a value registered in the IANA "JSCalendar Enum Values" registry

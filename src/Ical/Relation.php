@@ -43,19 +43,17 @@ class Relation extends BaseIcal
      */
     public static function processToIcalXparams( RelationDto $relationDto  ) : array
     {
+        if( empty( $relationDto->getRelationCount())) {
+            return [];
+        }
         $params = [];
         // array of String[Boolean]
-        if( ! empty( $relationDto->getRelationCount())) {
-            foreach( array_keys( $relationDto->getRelation()) as $rix => $relation ) {
-                if( ! isset( $params[IcalVcalendar::RELTYPE] )) {
-                    $key = IcalVcalendar::RELTYPE;
-                }
-                else {
-                    $key = self::setXPrefix( $relation ) . $rix;
-                }
-                $params[$key] = $relation;
-            }
-        } // end if
+        foreach( array_keys( $relationDto->getRelation()) as $rix => $relation ) {
+            $key = isset( $params[IcalVcalendar::RELTYPE] )
+                ? self::setXPrefix( $relation ) . $rix
+                : IcalVcalendar::RELTYPE;
+            $params[$key] = $relation;
+        } // end foreach
         return $params;
     }
 
@@ -67,19 +65,14 @@ class Relation extends BaseIcal
      */
     public static function processFromIcalRelatedTo( Pc $relatedto ) : array
     {
-        $id          = $relatedto->getValue();
         $relationDto = new RelationDto();
-        $relTypeKey  = strtolower( IcalVcalendar::RELTYPE );
         foreach( self::unXPrefixKeys( $relatedto->getParams()) as $pKey => $pValue ) {
-            if( $relTypeKey === $pKey ) {
-                $relationDto->addRelation( $pValue );
-                continue;
-            }
-            if( 0 === strcasecmp( self::remNumSuffix( $pKey ), $pValue )) {
+            if(( 0 === strcasecmp( IcalVcalendar::RELTYPE, $pKey )) ||
+                ( 0 === strcasecmp( self::remNumSuffix( $pKey ), $pValue ))) {
                 $relationDto->addRelation( $pValue );
             }
         } // end foreach
-        return [ $id, $relationDto ];
+        return [ $relatedto->getValue(), $relationDto ]; // id, RelationDto
     }
 
     /**

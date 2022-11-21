@@ -54,32 +54,16 @@ abstract class BaseEventTask extends BaseGroupEventTask
         if( isset( $jsonArray[self::EXCLUDED] )) {
             $dto->setExcluded( self::jsonBool2Php( $jsonArray[self::EXCLUDED] ));
         }
-        if( isset( $jsonArray[self::EXCLUDEDRECURRENCERULES] )) {
-            foreach( $jsonArray[self::EXCLUDEDRECURRENCERULES] as $excludedRecurrenceRule ) {
-                $dto->addExcludedRecurrenceRule( RecurrenceRule::parse( $excludedRecurrenceRule ));
-            }
-        }
+        self::extractExcludedRecurrenceRule( $jsonArray, $dto );
         if( isset( $jsonArray[self::FREEBUSYSTATUS] )) {
             $dto->setFreeBusyStatus( $jsonArray[self::FREEBUSYSTATUS] );
         }
-        if( isset( $jsonArray[self::LOCALIZATIONS] )) {
-            foreach( $jsonArray[self::LOCALIZATIONS] as $languageTag => $patchObject ) {
-                $dto->addLocalization( $languageTag, PatchObject::parse( $patchObject ));
-            }
-        }
-        if( isset( $jsonArray[self::LOCATIONS] )) {
-            foreach( $jsonArray[self::LOCATIONS] as $id => $location ) {
-                $dto->addLocation( $id, Location::parse( $location ));
-            }
-        }
+        self::extractLocalization( $jsonArray, $dto );
+        self::extractLocation( $jsonArray, $dto );
         if( isset( $jsonArray[self::METHOD] )) {
             $dto->setMethod( $jsonArray[self::METHOD] );
         }
-        if( isset( $jsonArray[self::PARTICIPANTS] )) {
-            foreach( $jsonArray[self::PARTICIPANTS] as $pix => $participant ) {
-                $dto->addParticipant( $pix, Participant::parse( $participant ));
-            }
-        }
+        self::extractParticipant( $jsonArray, $dto );
         if( isset( $jsonArray[self::PRIORITY] )) {
             $dto->setPriority((int) $jsonArray[self::PRIORITY] );
         }
@@ -92,26 +76,10 @@ abstract class BaseEventTask extends BaseGroupEventTask
         if( isset( $jsonArray[self::RECURRENCEIDTIMEZONE] )) {
             $dto->setRecurrenceIdTimeZone( $jsonArray[self::RECURRENCEIDTIMEZONE] );
         }
-        if( isset( $jsonArray[self::RECURRENCERULES] )) {
-            foreach( $jsonArray[self::RECURRENCERULES] as $recurrenceRule ) {
-                $dto->addRecurrenceRule( RecurrenceRule::parse( $recurrenceRule ));
-            }
-        }
-        if( isset( $jsonArray[self::RECURRENCEOVERRIDES] )) {
-            foreach( $jsonArray[self::RECURRENCEOVERRIDES] as $localDateTime => $patchObject) {
-                $dto->addRecurrenceOverride( $localDateTime, PatchObject::parse( $patchObject ));
-            }
-        }
-        if( isset( $jsonArray[self::RELATEDTO] )) {
-            foreach( $jsonArray[self::RELATEDTO] as $rix => $relation ) {
-                $dto->addRelatedTo( $rix, Relation::parse( $relation ));
-            }
-        }
-        if( isset( $jsonArray[self::REPLYTO] )) {
-            foreach( $jsonArray[self::REPLYTO] as $method => $replyTo ) {
-                $dto->addReplyTo( $method, $replyTo );
-            }
-        }
+        self::extractRecurrenceRule( $jsonArray, $dto );
+        self::extractRecurrenceOverride( $jsonArray, $dto );
+        self::extractRelatedTo( $jsonArray, $dto );
+        self::extractReplyTo( $jsonArray, $dto );
         if( isset( $jsonArray[self::REQUESTSTATUS] )) {
             $dto->setRequestStatus( $jsonArray[self::REQUESTSTATUS] );
         }
@@ -130,25 +98,168 @@ abstract class BaseEventTask extends BaseGroupEventTask
         if( isset( $jsonArray[self::TIMEzONE] )) { // timeZoneId
             $dto->setTimeZone( $jsonArray[self::TIMEzONE] );
         }
+        self::extractTimeZone( $jsonArray, $dto );
+        self::extractVirtualLocation( $jsonArray, $dto );
+        if( isset( $jsonArray[self::USEDEFAULTALERTS] )) {
+            $dto->setUseDefaultAlerts( self::jsonBool2Php( $jsonArray[self::USEDEFAULTALERTS] ));
+        }
+        self::extractAlert( $jsonArray, $dto );
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractExcludedRecurrenceRule( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::EXCLUDEDRECURRENCERULES] )) {
+            foreach( $jsonArray[self::EXCLUDEDRECURRENCERULES] as $excludedRecurrenceRule ) {
+                $dto->addExcludedRecurrenceRule( RecurrenceRule::parse( $excludedRecurrenceRule ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractLocalization( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::LOCALIZATIONS] )) {
+            foreach( $jsonArray[self::LOCALIZATIONS] as $languageTag => $patchObject ) {
+                $dto->addLocalization( $languageTag, PatchObject::parse( $patchObject ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractLocation( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::LOCATIONS] )) {
+            foreach( $jsonArray[self::LOCATIONS] as $id => $location ) {
+                $dto->addLocation( $id, Location::parse( $location ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractParticipant( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::PARTICIPANTS] )) {
+            foreach( $jsonArray[self::PARTICIPANTS] as $pix => $participant ) {
+                $dto->addParticipant( $pix, Participant::parse( $participant ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractRecurrenceRule( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::RECURRENCERULES] )) {
+            foreach( $jsonArray[self::RECURRENCERULES] as $recurrenceRule ) {
+                $dto->addRecurrenceRule( RecurrenceRule::parse( $recurrenceRule ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractRecurrenceOverride( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::RECURRENCEOVERRIDES] )) {
+            foreach( $jsonArray[self::RECURRENCEOVERRIDES] as $localDateTime => $patchObject) {
+                $dto->addRecurrenceOverride( $localDateTime, PatchObject::parse( $patchObject ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractRelatedTo( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::RELATEDTO] )) {
+            foreach( $jsonArray[self::RELATEDTO] as $rix => $relation ) {
+                $dto->addRelatedTo( $rix, Relation::parse( $relation ));
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractReplyTo( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
+        if( isset( $jsonArray[self::REPLYTO] )) {
+            foreach( $jsonArray[self::REPLYTO] as $method => $replyTo ) {
+                $dto->addReplyTo( $method, $replyTo );
+            }
+        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractTimeZone( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
         if( isset( $jsonArray[self::TIMEZONES] )) {
             foreach( $jsonArray[self::TIMEZONES] as $timeZoneId => $timeZone ) {
                 $dto->addTimeZone( $timeZoneId, TimeZone::parse( $timeZone ));
             }
         }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractVirtualLocation( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
         if( isset( $jsonArray[self::VIRTUALLOCATIONS] )) {
             foreach( $jsonArray[self::VIRTUALLOCATIONS] as $id => $virtualLocation ) {
                 $dto->addVirtualLocation( $id, VirtualLocation::parse( $virtualLocation ));
             }
         }
-        if( isset( $jsonArray[self::USEDEFAULTALERTS] )) {
-            $dto->setUseDefaultAlerts( self::jsonBool2Php( $jsonArray[self::USEDEFAULTALERTS] ));
-        }
+    }
+
+    /**
+     * @param array $jsonArray
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractAlert( array $jsonArray, EventDto|TaskDto $dto ) : void
+    {
         if( isset( $jsonArray[self::ALERTS] )) {
             foreach( $jsonArray[self::ALERTS] as $id => $alert ) {
                 $dto->addAlert( $id, Alert::parse( $alert ));
             }
         }
     }
+
     /**
      * Write Event|Task common Dto properties to json array
      *
@@ -160,70 +271,81 @@ abstract class BaseEventTask extends BaseGroupEventTask
         if( $dto->isDescriptionSet()) {
             $jsonArray[self::DESCRIPTION] = $dto->getDescription();
         }
-
         if( $dto->isDescriptionContentTypeSet()) {
             $jsonArray[self::DESCRIPTIONCONTENTTYPE] = $dto->getDescriptionContentType();
         }
-
         if( $dto->isExcludedSet() && $dto->getExcluded()) { // skip default false
             $jsonArray[self::EXCLUDED] = self::phpBool2Json( true );
         }
-
         if( $dto->isFreeBusyStatusSet()) {
             $jsonArray[self::FREEBUSYSTATUS] = $dto->getFreeBusyStatus();
         }
-
         if( $dto->isMethodSet()) {
             $jsonArray[self::METHOD] = $dto->getMethod();
         }
-
         if( $dto->isPrioritySet()) {
             $jsonArray[self::PRIORITY] = $dto->getPriority();
         }
-
         if( $dto->isPrivacySet()) {
             $jsonArray[self::PRIVACY] = $dto->getPrivacy();
         }
-
         if( $dto->isRecurrenceIdSet()) {
             $jsonArray[self::RECURRENCEID] = $dto->getRecurrenceId();
         }
-
         if( $dto->isRecurrenceIdTimeZoneSet()) {
             $jsonArray[self::RECURRENCEIDTIMEZONE] = $dto->getRecurrenceIdTimeZone();
         }
-
         if( $dto->isRequestStatusSet()) {
             $jsonArray[self::REQUESTSTATUS] = $dto->getRequestStatus();
         }
-
         if( $dto->isSentBySet()) {
             $jsonArray[self::SENTBY] = $dto->getSentBy();
         }
-
         if( $dto->isSequenceSet()) {
             $jsonArray[self::SEQUENCE] = $dto->getSequence();
         }
-
         if( $dto->isShowWithoutTimeSet() && $dto->getShowWithoutTime()) { // skip default false
             $jsonArray[self::SHOWWITHOUTTIME] = true;
         }
-
         if( $dto->isStartSet()) {
             $jsonArray[self::START] = $dto->getStart();
         }
-
         if( $dto->isTimeZoneSet()) {
             $jsonArray[self::TIMEzONE] = $dto->getTimeZone();
         }
+        self::extractJsExcludedRecurrenceRules( $dto, $jsonArray );
+        self::extractJsLocalizations( $dto, $jsonArray );
+        self::extractJsLocations( $dto, $jsonArray );
+        self::extractJsParticipants( $dto, $jsonArray );
+        self::extractJsRecurrenceRules( $dto, $jsonArray );
+        self::extractJsRecurrenceOverrides( $dto, $jsonArray );
+        self::extractJsRelatedTos( $dto, $jsonArray );
+        self::extractJsReplyTos( $dto, $jsonArray );
+        self::extractJsTimeZones( $dto, $jsonArray );
+        self::extractJsVirtualLocations( $dto, $jsonArray );
+        self::extractJsAlerts( $dto, $jsonArray );
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsExcludedRecurrenceRules( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of RecurrenceRule[]
         if( ! empty( $dto->getExcludedRecurrenceRulesCount())) {
             foreach( $dto->getExcludedRecurrenceRules() as $x => $excludedRecurrenceRule ) {
                 $jsonArray[self::EXCLUDEDRECURRENCERULES][$x] = (object)RecurrenceRule::write( $excludedRecurrenceRule );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsLocalizations( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "String[PatchObject]"
         if( ! empty( $dto->getLocalizationsCount())) {
             $jsonArray[self::LOCALIZATIONS] = new stdClass();
@@ -231,7 +353,14 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::LOCALIZATIONS]->{$languageTag} = (object) PatchObject::write( $patchObject );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsLocations( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "Id[Location]"
         if( ! empty( $dto->getLocationsCount())) {
             $jsonArray[self::LOCATIONS] = new stdClass();
@@ -239,7 +368,14 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::LOCATIONS]->{$id} = (object) Location::write( $location );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsParticipants( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "Id[Participant]"
         if( ! empty( $dto->getParticipantsCount())) {
             $jsonArray[self::PARTICIPANTS] = new stdClass();
@@ -247,14 +383,28 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::PARTICIPANTS]->{$id} = (object) Participant::write( $participant );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsRecurrenceRules( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "RecurrenceRule[]"
         if( ! empty( $dto->getRecurrenceRulesCount())) {
             foreach( $dto->getRecurrenceRules() as $x => $recurrenceRule ) {
                 $jsonArray[self::RECURRENCERULES][$x] = (object)RecurrenceRule::write( $recurrenceRule );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsRecurrenceOverrides( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "LocalDateTime[PatchObject]"
         if( ! empty( $dto->getRecurrenceOverridesCount())) {
             $jsonArray[self::RECURRENCEOVERRIDES] = new stdClass();
@@ -262,7 +412,14 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::RECURRENCEOVERRIDES]->{$localDateTime} = (object) PatchObject::write( $patchObject );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsRelatedTos( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "String[Relation]"
         if( ! empty( $dto->getRelatedToCount())) {
             $jsonArray[self::RELATEDTO] = new stdClass();
@@ -270,14 +427,28 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::RELATEDTO]->{$uid} = (object) Relation::write( $relation );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsReplyTos( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "String[String]"
         if( ! empty( $dto->getReplyToCount())) {
             foreach( $dto->getReplyTo() as $method => $replyTo ) {
                 $jsonArray[self::REPLYTO][$method] = $replyTo;
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsTimeZones( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "TimeZoneId[TimeZone]"
         if( ! empty( $dto->getTimeZonesCount())) {
             $jsonArray[self::TIMEZONES] = new stdClass();
@@ -285,7 +456,14 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::TIMEZONES]->{$timeZoneId} = (object) TimeZone::write( $timeZone );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsVirtualLocations( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         // array of "Id[VirtualLocation]"
         if( ! empty( $dto->getVirtualLocationsCount())) {
             $jsonArray[self::VIRTUALLOCATIONS] = new stdClass();
@@ -293,11 +471,17 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $jsonArray[self::VIRTUALLOCATIONS]->{$id} = (object) VirtualLocation::write( $virtualLocation );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param string[]|string[][] $jsonArray
+     */
+    private static function extractJsAlerts( EventDto|TaskDto $dto, array & $jsonArray ) : void
+    {
         if( $dto->isUseDefaultAlertsSet() && $dto->getUseDefaultAlerts()) { // skip default false
             $jsonArray[self::USEDEFAULTALERTS] = self::phpBool2Json( true );
         }
-
         if( ! empty( $dto->getAlertsCount())) {
             $jsonArray[self::ALERTS] = new stdClass();
             foreach( $dto->getAlerts() as $id => $alert ) {
@@ -305,4 +489,5 @@ abstract class BaseEventTask extends BaseGroupEventTask
             }
         }
     }
+
 }

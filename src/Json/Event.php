@@ -67,18 +67,14 @@ class Event extends BaseEventTask
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
         parent::groupEventTaskWrite( $dto, $jsonArray );
         parent::eventTaskWrite( $dto, $jsonArray );
-
         if( $dto->isDurationSet()) {
             $jsonArray[self::DURATION] = $dto->getDuration();
         }
-
         if( $dto->isStatusSet()) {
             $jsonArray[self::STATUS] = $dto->getStatus();
         }
-
         return self::orderElements( Dto::$ElementOrder, $jsonArray );
     }
 }

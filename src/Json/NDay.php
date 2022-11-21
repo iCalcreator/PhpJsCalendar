@@ -62,12 +62,9 @@ class NDay extends BaseJson
     public static function write( Dto $dto ) : array
     {
         $jsonArray = [ self::OBJECTTYPE => $dto->getType() ];
-
-
         if( $dto->isDaySet()) {
             $jsonArray[self::DAY] = $dto->getDay();
         }
-
         if( $dto->isNthOfPeriodSet()) {
             $jsonArray[self::NTHOFPERIOD] = $dto->getNthOfPeriod();
         }

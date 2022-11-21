@@ -35,6 +35,7 @@ use Exception;
 use Kigkonsult\Icalcreator\CalendarComponent as IcalComponent;
 use Kigkonsult\Icalcreator\Participant       as IcalParticipant;
 use Kigkonsult\Icalcreator\Vevent            as IcalVevent;
+use Kigkonsult\Icalcreator\Vlocation         as IcalVlocation;
 use Kigkonsult\Icalcreator\Vtimezone         as IcalVtimezone;
 use Kigkonsult\Icalcreator\Vtodo             as IcalVtodo;
 use Kigkonsult\PhpJsCalendar\Dto\Event       as EventDto;
@@ -59,39 +60,97 @@ abstract class BaseEventTask extends BaseGroupEventTask
         if( $dto->isMethodSet()) {
             $iCal->setXprop( self::setXPrefix( self::METHOD ), $dto->getMethod());
         }
-
         $locale = $dto->getLocale();
-        if( $dto->isDescriptionSet()) {
-            $value  = $dto->getDescription();
-            $params = $dto->isDescriptionContentTypeSet()
-                ? [ self::setXPrefix( self::DESCRIPTIONCONTENTTYPE ) => $dto->getDescriptionContentType() ]
-                : [];
-            if( ! empty( $locale )) {
-                $params[$iCal::LANGUAGE] = $locale;
-            }
-            $iCal->setDescription( $value, $params );
+        self::extractJsDescription( $dto, $iCal, $locale );
+        self::extractJsExcluded( $dto, $iCal );
+        // create Vfreebusy ?
+        if( $dto->isFreeBusyStatusSet()) {
+            $iCal->setXprop( self::setXPrefix( self::FREEBUSYSTATUS ), $dto->getFreeBusyStatus());
         }
+        if( $dto->isPrioritySet()) {
+            $iCal->setPriority( $dto->getPriority());
+        }
+        if( $dto->isPrivacySet()) {
+            $iCal->setClass( strtoupper( $dto->getPrivacy()));
+        }
+        self::extractJsRecurrenceId( $dto, $iCal );
+        self::extractJsRequestStatus( $dto, $iCal );
+        if( $dto->isSentBySet()) { // ?? organizer
+            $iCal->setXprop( self::setXPrefix( self::SENTBY ), $dto->getSentBy());
+        }
+        if( $dto->isSequenceSet()) {
+            $iCal->setSequence( $dto->getSequence());
+        }
+        [ $startDateTime, $tzid ] = self::extractJsStartTzid( $dto, $iCal );
+        self::extractJsExcludedRecurrence( $dto, $iCal, $tzid );
+        self::extractJsLocalizations( $dto, $iCal );
 
+        $vLocations     = self::extractJsLocations( $dto, $locale ); // lid[Vlocations]
+        $pVlocationLids = self::extractJsParticipants( $dto, $iCal, $vLocations );
+        self::setOneIcalLocation( $iCal, $vLocations, $pVlocationLids, $locale );
+        self::setIcalVlocations( $iCal, $vLocations, $pVlocationLids );
+
+        self::extractJsRecurrenceRules( $dto, $iCal, $tzid );
+        self::extractJsRecurrenceOverrides( $dto, $iCal );
+        self::extractJsRelatedTo( $dto, $iCal );
+        self::extractJsReplyTo( $dto, $iCal );
+        self::extractJsVirtualLocations( $dto, $iCal );
+        $iCalVtimezones = self::extractJsTimeZones( $dto );
+        self::extractJsAlerts( $dto, $iCal );
+        return [ $iCalVtimezones, $startDateTime ];
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param string|null $locale
+     */
+    private static function extractJsDescription(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal,
+        ? string $locale
+    ) : void
+    {
+        if( ! $dto->isDescriptionSet()) {
+            return;
+        }
+        $value  = $dto->getDescription();
+        $params = $dto->isDescriptionContentTypeSet()
+            ? [ self::setXPrefix( self::DESCRIPTIONCONTENTTYPE ) => $dto->getDescriptionContentType() ]
+            : [];
+        if( ! empty( $locale )) {
+            $params[$iCal::LANGUAGE] = $locale;
+        }
+        $iCal->setDescription( $value, $params );
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     */
+    private static function extractJsExcluded(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
         if( $dto->isExcludedSet()) {
             $iCal->setXprop(
                 self::setXPrefix( self::EXCLUDED ),
                 $dto->getExcluded() ? $iCal::TRUE : $iCal::FALSE
             );
         }
+    }
 
-        // create Vfreebusy ?
-        if( $dto->isFreeBusyStatusSet()) {
-            $iCal->setXprop( self::setXPrefix( self::FREEBUSYSTATUS ), $dto->getFreeBusyStatus());
-        }
-
-        if( $dto->isPrioritySet()) {
-            $iCal->setPriority( $dto->getPriority());
-        }
-
-        if( $dto->isPrivacySet()) {
-            $iCal->setClass( strtoupper( $dto->getPrivacy()));
-        }
-
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @throws Exception
+     */
+    private static function extractJsRecurrenceId(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
         if( $dto->isRecurrenceIdSet()) {
             $value  = $dto->getRecurrenceId();
             if( $dto->isRecurrenceIdTimeZoneSet()) {
@@ -99,20 +158,34 @@ abstract class BaseEventTask extends BaseGroupEventTask
             }
             $iCal->setRecurrenceid( $value );
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     */
+    private static function extractJsRequestStatus(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
         if( $dto->isRequestStatusSet()) {
             $requeststatus = explode( self::$SQ, $dto->getRequestStatus(), 3 );
             $iCal->setRequeststatus( $requeststatus[0], $requeststatus[1], $requeststatus[2] ?: null );
         }
+    }
 
-        if( $dto->isSentBySet()) { // ?? organizer
-            $iCal->setXprop( self::setXPrefix( self::SENTBY ), $dto->getSentBy());
-        }
-
-        if( $dto->isSequenceSet()) {
-            $iCal->setSequence( $dto->getSequence());
-        }
-
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @return array
+     * @throws Exception
+     */
+    private static function extractJsStartTzid(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : array
+    {
         $startDateTime = null;
         $tzid          = $dto->getTimeZone();
         if( $dto->isStartSet()) {
@@ -128,117 +201,290 @@ abstract class BaseEventTask extends BaseGroupEventTask
             $iCal->setDtstart( $dto->getStart(), $params );
             $startDateTime = clone $iCal->getDtstart();
         }
+        return [ $startDateTime, $tzid ];
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param string|null $tzid
+     * @throws Exception
+     */
+    private static function extractJsExcludedRecurrence(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal,
+        ? string $tzid
+    ) : void
+    {
+        if( empty( $dto->getExcludedRecurrenceRulesCount())) {
+            return;
+        }
         // array of RecurrenceRule[] iCal accept ONE only
-        if( ! empty( $dto->getExcludedRecurrenceRulesCount())) {
-            foreach( array_slice( $dto->getExcludedRecurrenceRules(), 0, 1 ) as $excludedRecurrenceRule ) {
-                $iCal->setExrule( RecurrenceRule::processToIcalRecur( $excludedRecurrenceRule, $tzid ));
-            }
+        foreach( array_slice( $dto->getExcludedRecurrenceRules(), 0, 1 ) as $excludedRecurrenceRule ) {
+            $iCal->setExrule( RecurrenceRule::processToIcalRecur( $excludedRecurrenceRule, $tzid ));
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     */
+    private static function extractJsLocalizations(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
+        if( empty( $dto->getLocalizationsCount())) {
+            return;
+        }
+        $localizationsCnt = 0;
+        $localizationsKey = self::setXPrefix( self::LOCALIZATIONS ) . self::$D;
         // array of "String[PatchObject]"
-        if( ! empty( $dto->getLocalizationsCount())) {
-            $localizationsCnt = 0;
-            $localizationsKey = self::setXPrefix( self::LOCALIZATIONS ) . self::$D;
-            foreach( $dto->getLocalizations() as $languageTag => $patchObject ) {
-                $iCal->setXprop(
-                    $localizationsKey . ++$localizationsCnt,
-                    $languageTag,
-                    PatchObject::processToIcalXparams( $patchObject )
-                );
-            }
-        }
-
-        // array of "Id[Location]"
-        $vLocations = [];  // lid[Vloctions]
-        if( ! empty( $dto->getLocationsCount())) {
-            $locationCnt = 0;
-            foreach( $dto->getLocations() as $lid => $location ) {
-                $vLocations[$lid] = Location::processToIcal( $lid,  $location, $locale );
-                if( 0 === $locationCnt ) {  // only one Ical location accepted
-                    [ $locationValue, $locationParams ] = Location::processToIcalLocationArr( $lid,  $location, $locale );
-                    if( ! empty( $locationValue )) { // skip location without name
-                        $iCal->setLocation( $locationValue, $locationParams );
-                    }
-                }
-                ++$locationCnt;
-            } // end foreach
-        } // end locations
-
-        // array of "Id[Participant]"
-        if( ! empty( $dto->getParticipantsCount())) {
-            $particpants = [];
-            $idEmailArr  = []; // used to map participant id to email, [ id => email ]
-            foreach( $dto->getParticipants() as $pid => $participant ) {
-                $particpants[$pid]    = $participant;
-                if( $participant->isEmailSet()) {
-                    $idEmailArr[$pid] = $participant->getEmail();
-                }
-            }
-            foreach( $particpants as $pid => $participant ) {
-                $participantVlocation = null;
-                if( $participant->isLocationIdSet()) {
-                    $lid = $participant->getLocationId();
-                    if( isset( $vLocations[$lid] ) ) {
-                        $participantVlocation = $vLocations[$lid];
-//                      unset( $vLocations[$lid] );
-                    }
-                }
-                [ $attendeeValue, $attendeeParams ] =
-                    Participant::processToIcal(
-                        $participant,
-                        $iCal->newParticipant()->setUid((string) $pid ),
-                        $idEmailArr,
-                        $participantVlocation
-                    );
-                if( ! empty($attendeeValue )) {
-                    $iCal->setAttendee( $attendeeValue, $attendeeParams );
-                }
-            } // end foreach
-        } // end participants
-        foreach( $vLocations as $vlocation ) {
-            $iCal->setComponent( $vlocation ); // all but participant Vlocation as Vevent/Vtodo Vlocations
+        foreach( $dto->getLocalizations() as $languageTag => $patchObject ) {
+            $iCal->setXprop(
+                $localizationsKey . ++$localizationsCnt,
+                $languageTag,
+                PatchObject::processToIcalXparams( $patchObject )
+            );
         } // end foreach
+    }
 
+    /**
+     * Return array, lid => Vloctions
+     *
+     * @param EventDto|TaskDto $dto
+     * @param string|null $locale
+     * @return array
+     * @throws Exception
+     */
+    private static function extractJsLocations(
+        EventDto|TaskDto $dto,
+        ? string $locale
+    ) : array
+    {
+        if( empty( $dto->getLocationsCount())) {
+            return [];
+        }
+        $vLocations = [];
+        foreach( $dto->getLocations() as $lid => $location ) {
+            $vLocations[$lid] = Location::processToIcalVlocation( $lid,  $location, $locale );
+        }
+        return $vLocations;
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param array $vLocations   lid => Vloctions
+     * @return array   Vloctions (lid) used by participants
+     * @throws Exception
+     */
+    private static function extractJsParticipants(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal,
+        array & $vLocations
+    ) : array
+    {
+        if( empty( $dto->getParticipantsCount())) {
+            return [];
+        }
+        [ $particpants, $idEmailArr] = self::getDtoParticipantsIdEmails( $dto );
+        $pVlocationLids = [];
+        foreach( $particpants as $pid => $participant ) {
+            $participantVlocation =
+                Participant::getVlocationUsingLocationId( $participant, $vLocations, $pVlocationLids );
+            [ $attendeeValue, $attendeeParams ] = Participant::processToIcal(
+                $participant,
+                $iCal->newParticipant()->setUid((string) $pid ),
+                $idEmailArr,
+                $participantVlocation
+            );
+            if( ! empty( $attendeeValue )) { // skip no-email participant
+                $iCal->setAttendee( $attendeeValue, $attendeeParams );
+            }
+        } // end foreach
+        return $pVlocationLids;
+    }
+
+    /**
+     * Return array, particpants and all id+email pars
+     *
+     * @param EventDto|TaskDto $dto
+     * @return array[]
+     */
+    private static function getDtoParticipantsIdEmails( EventDto|TaskDto $dto ) : array
+    {
+        $particpants = [];
+        $idEmailArr  = []; // used to map participant id to email, [ id => email ]
+        foreach( $dto->getParticipants() as $pid => $participant ) {
+            $particpants[$pid]    = $participant;
+            if( $participant->isEmailSet()) {
+                $idEmailArr[$pid] = $participant->getEmail();
+            }
+        } // end foreach
+        return [ $particpants, $idEmailArr ];
+    }
+
+    /**
+     * Take first Vlocation WITH name and set as iCal::location, skip the rest
+     *
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param IcalVlocation[] $vLocations
+     * @param string[]        $pVlocationLids
+     * @param string|null     $locale
+     */
+    private static function setOneIcalLocation(
+        IcalVevent|IcalVtodo $iCal,
+        array $vLocations,
+        array $pVlocationLids,
+        ? string $locale
+    ) : void
+    {
+        if( empty( $vLocations )) {
+            return;
+        }
+        $vLocationsLids = array_keys( $vLocations );
+        foreach( $vLocationsLids as $lid ) { // try to use the first found Vlocation NOT in participants
+            if( ! in_array( $lid, $pVlocationLids, true ) &&
+                Location::setIcalLocationFromIcalVlocation( $lid, $vLocations[$lid], $iCal, $locale )) {
+                return;
+            }
+        } // end foreach
+        foreach( $vLocationsLids as $lid ) { // otherwise pick the first one
+            if( Location::setIcalLocationFromIcalVlocation( $lid, $vLocations[$lid], $iCal, $locale )) {
+                break;
+            }
+        } // end foreach
+    }
+
+    /**
+     * Set all but participant Vlocations as Vevent/Vtodo Vlocations
+     *
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param array $vLocations
+     * @param array $pVlocationLids
+     */
+    private static function setIcalVlocations(
+        IcalVevent|IcalVtodo $iCal,
+        array $vLocations,
+        array $pVlocationLids
+    ) : void
+    {
+        foreach( $vLocations as $lid => $vlocation ) {
+            if( ! in_array( $lid, $pVlocationLids, true )) {
+                $iCal->setComponent( $vlocation );
+            }
+        } // end foreach
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @param string|null $tzid
+     * @throws Exception
+     */
+    private static function extractJsRecurrenceRules(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal,
+        ? string $tzid
+    ) : void
+    {
+        if( empty( $dto->getRecurrenceRulesCount())) {
+            return;
+        }
         // array of "RecurrenceRule[]" - iCal accepts ONE only
-        if( ! empty( $dto->getRecurrenceRulesCount())) {
-            foreach( array_slice( $dto->getRecurrenceRules(), 0, 1 ) as $recurrenceRule ) {
-                $iCal->setRrule( RecurrenceRule::processToIcalRecur( $recurrenceRule, $tzid ));
-            }
+        foreach( array_slice( $dto->getRecurrenceRules(), 0, 1 ) as $recurrenceRule ) {
+            $iCal->setRrule( RecurrenceRule::processToIcalRecur( $recurrenceRule, $tzid ));
         }
-        // PatchObject ??
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @throws Exception
+     */
+    private static function extractJsRecurrenceOverrides(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
+        if(  empty( $dto->getRecurrenceOverridesCount())) {
+            return;
+        }
         // array of "LocalDateTime[PatchObject]"
-        if( ! empty( $dto->getRecurrenceOverridesCount())) {
-            foreach( $dto->getRecurrenceOverrides() as $localDateTime => $patchObject) {
-                $iCal->setRdate( $localDateTime, PatchObject::processToIcalXparams( $patchObject ));
-            }
+        foreach( $dto->getRecurrenceOverrides() as $localDateTime => $patchObject) {
+            $iCal->setRdate( $localDateTime, PatchObject::processToIcalXparams( $patchObject ));
         }
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     */
+    private static function extractJsRelatedTo(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
         // array of "String[Relation]"
-        if( ! empty( $dto->getRelatedToCount())) {
-            foreach( $dto->getRelatedTo() as $uid => $relation ) {
-                $iCal->setRelatedto( $uid, Relation::processToIcalXparams( $relation ));
-            }
+        if( empty( $dto->getRelatedToCount())) {
+            return;
         }
+        foreach( $dto->getRelatedTo() as $uid => $relation ) {
+            $iCal->setRelatedto( $uid, Relation::processToIcalXparams( $relation ));
+        }
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     */
+    private static function extractJsReplyTo(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
+        if( empty( $dto->getReplyToCount())) {
+            return;
+        }
+        $replyToKey = self::setXPrefix( self::REPLYTO . self::$D );
         // array of "String[String]"  for imip method ical organizer, others x-prop
-        if( ! empty( $dto->getReplyToCount())) {
-            $replyToKey = self::setXPrefix( self::REPLYTO . self::$D );
-            foreach( $dto->getReplyTo() as $replyToMethod => $replyTo ) {
-                if( $dto::IMIP === $replyToMethod ) {
-                    $iCal->setOrganizer( $replyTo );
-                }
-                else {
-                    $iCal->setXprop( $replyToKey . strtoupper( $replyToMethod ), $replyTo );
-                }
+        foreach( $dto->getReplyTo() as $replyToMethod => $replyTo ) {
+            if( $dto::IMIP === $replyToMethod ) {
+                $iCal->setOrganizer( $replyTo );
+            }
+            else {
+                $iCal->setXprop( $replyToKey . strtoupper( $replyToMethod ), $replyTo );
             }
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @throws Exception
+     */
+    private static function extractJsVirtualLocations(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
+        if( empty( $dto->getVirtualLocationsCount())) {
+            return;
+        }
         // array of "Id[VirtualLocation]"
-        if( ! empty( $dto->getVirtualLocationsCount())) {
-            foreach( $dto->getVirtualLocations() as $id => $virtualLocation ) {
-                $iCal->setComponent( VirtualLocation::processToIcal( $id, $virtualLocation ));
-            }
+        foreach( $dto->getVirtualLocations() as $id => $virtualLocation ) {
+            $iCal->setComponent( VirtualLocation::processToIcal( $id, $virtualLocation ));
         }
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @return array
+     * @throws Exception
+     */
+    private static function extractJsTimeZones( EventDto|TaskDto $dto ) : array
+    {
         $iCalVtimezones = [];
         // array of "TimeZoneId[TimeZone]"
         if( ! empty( $dto->getTimeZonesCount())) {
@@ -246,20 +492,31 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $iCalVtimezones[$timeZoneId] = TimeZone::processToIcal( $timeZoneId, $timeZone );
             }
         }
+        return $iCalVtimezones;
+    }
 
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param IcalVevent|IcalVtodo $iCal
+     * @throws Exception
+     */
+    private static function extractJsAlerts(
+        EventDto|TaskDto $dto,
+        IcalVevent|IcalVtodo $iCal
+    ) : void
+    {
         if( $dto->isUseDefaultAlertsSet()) {
             $iCal->setXprop( self::setXPrefix(
                 self::USEDEFAULTALERTS ),
                 $dto->getUseDefaultAlerts() ? $iCal::TRUE : $iCal::FALSE
             );
         }
-        if( ! empty( $dto->getAlertsCount())) {
-            foreach( $dto->getAlerts() as $id => $alert ) {
-                Alert::processToIcal( $id, $alert, $iCal->newValarm());
-            }
+        if( empty( $dto->getAlertsCount())) {
+            return;
         }
-
-        return [ $iCalVtimezones, $startDateTime ];
+        foreach( $dto->getAlerts() as $id => $alert ) {
+            Alert::processToIcal( $id, $alert, $iCal->newValarm());
+        }
     }
 
     /**
@@ -277,92 +534,232 @@ abstract class BaseEventTask extends BaseGroupEventTask
         array $iCalVtimezones
     ) : ? DateTime
     {
+        self::extractIcalXmethod( $iCalComponent, $dto, );
+        self::extractIcalDescription( $iCalComponent, $dto );
+        if( $iCalComponent->isPrioritySet()) {
+            $dto->setPriority( $iCalComponent->getPriority() );
+        }
+        if( $iCalComponent->IsClassSet()) {
+            $dto->setPrivacy( $iCalComponent->getClass());
+        }
+        self::extractIcalRecurrenceid( $iCalComponent, $dto );
+        if( $iCalComponent->isRequestStatusSet()) {
+            $dto->setRequeststatus( implode( self::$SQ, $iCalComponent->getRequestStatus()));
+        }
+        self::extractIcalSentBy( $iCalComponent, $dto );
+        if( $iCalComponent->isSequenceSet()) {
+            $dto->setSequence( $iCalComponent->getSequence());
+        }
+        [ $startDateTime, $tzid ] = self::extractIcalDtstartTzid( $iCalComponent, $dto );
+        self::extractIcalExcluded( $iCalComponent, $dto );
+        self::extractIcalExrule( $iCalComponent, $dto, $tzid );
+        // Vlocations, Attendees && Participants
+        $virtualLocationKey = self::setXPrefix( self::VIRTUALLOCATION ); // also used below
+        $dtoLocations = self::extractIcalVlocationsWithoutKey( $iCalComponent, $virtualLocationKey ); // 1. iCal components
+        // $attendees (email[params]), $idEmailArr (id[email])
+        [ $attendees, $idEmailArr ] = self::extractIcalAttendees( $iCalComponent );
+        self::extractIcalParticipants( $iCalComponent, $dto, $attendees, $idEmailArr, $dtoLocations );
+        // any Attendee(s) NOT found as Participant on calAdress
+        self::processAttendeesNotInParticipants( $dto, $attendees, $idEmailArr );
+        /*
+         * Check locations
+         *
+         * 1: Participant(s) vlocations (from Participants above)
+         * 2: Component Vlocations (properties) locations, NOT VirtualLocations !
+         * 3: iCalComponent::getLocation()
+//       * 4: iCalComponent::getXprop( X-LOCATION skipped
+         */
+        $iCalPropLocations = []; // iCal location properties value array
+        if( $iCalComponent->isLocationSet()) {  // 2. ical property location (ony one)
+            $iCalPropLocations[] = $iCalComponent->getLocation( null, true );
+        }
+        // 3: ical::getXprop( X-LOCATION   // skip.. .
+        self::processIcalPropLocations( $iCalPropLocations, $dtoLocations );
+        self::addDtoLocations( $dto, $dtoLocations );
+        if( $iCalComponent->isRruleSet()) {
+            $dto->addRecurrenceRule( RecurrenceRule::processFromIcalRecur( $iCalComponent->getRrule(), $tzid ));
+        }
+        self::extractIcalRdates( $iCalComponent, $dto );
+        self::extractIcalRelatedtos( $iCalComponent, $dto );
+        // check for iCal Vlocations with VirtualLocationId
+        self::extractIcalVlocationsWithKey( $iCalComponent, $dto, $virtualLocationKey );
+        self::extractIcalFreeBusyStatus( $iCalComponent, $dto );
+        $imipFound = self::extractIcalOrganizer( $iCalComponent, $dto );
+        // Localizations and replyTo as iCal xProps
+        self::extractIcalLocalizationsReplyToXprops( $iCalComponent, $dto, $imipFound );
+        self::processIcalVtimezones( $dto, $iCalVtimezones );
+        self::extractIcalAlarms( $iCalComponent, $dto );
+        return $startDateTime ?: null;
+    }
+
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     */
+    private static function extractIcalXmethod(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+    ) : void
+    {
         $methodKey = self::setXPrefix( self::METHOD );
         if( $iCalComponent->isXpropSet( $methodKey )) {
             $dto->setMethod( $iCalComponent->getXprop( $methodKey )[1] );
         }
+    }
 
-        if( $iCalComponent->isDescriptionSet()) {
-            $contents = $iCalComponent->getDescription( true );
-            $dto->setDescription( $contents->getValue());
-            if( $contents->hasParamKey( $iCalComponent::LANGUAGE )) {
-                $dto->setLocale( $contents->getParams( $iCalComponent::LANGUAGE ));
-            }
-            $descrCtKey = self::setXPrefix(self::DESCRIPTIONCONTENTTYPE );
-            if( $contents->hasParamKey( $descrCtKey )) {
-                $dto->setDescriptionContentType( $contents->getParams( $descrCtKey ));
-            }
-            elseif( $iCalComponent->isXpropSet( $descrCtKey )) {
-                $dto->setDescriptionContentType( $iCalComponent->getXprop( $descrCtKey )[1] );
-            }
-        } // end if
-
-        if( $iCalComponent->isPrioritySet()) {
-            $dto->setPriority( $iCalComponent->getPriority() );
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     */
+    private static function extractIcalDescription(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+    ) : void
+    {
+        if( ! $iCalComponent->isDescriptionSet()) {
+            return;
         }
-
-        if( $iCalComponent->IsClassSet()) {
-            $dto->setPrivacy( $iCalComponent->getClass());
+        $contents = $iCalComponent->getDescription( true );
+        $dto->setDescription( $contents->getValue());
+        if( $contents->hasParamKey( $iCalComponent::LANGUAGE )) {
+            $dto->setLocale( $contents->getParams( $iCalComponent::LANGUAGE ));
         }
+        $descrCtKey = self::setXPrefix(self::DESCRIPTIONCONTENTTYPE );
+        if( $contents->hasParamKey( $descrCtKey )) {
+            $dto->setDescriptionContentType( $contents->getParams( $descrCtKey ));
+        }
+        elseif( $iCalComponent->isXpropSet( $descrCtKey )) {
+            $dto->setDescriptionContentType( $iCalComponent->getXprop( $descrCtKey )[1] );
+        }
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractIcalRecurrenceid(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         if( $iCalComponent->isRecurrenceidSet()) {
             $contents = $iCalComponent->getRecurrenceid();
             $dto->setRecurrenceId( $contents );
             $dto->setRecurrenceIdTimeZone( $contents->getTimezone()->getName());
         }
+    }
 
-        if( $iCalComponent->isRequestStatusSet()) {
-            $dto->setRequeststatus( implode( self::$SQ, $iCalComponent->getRequestStatus()));
-        }
-
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractIcalSentBy(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         $key = self::setXPrefix( self::SENTBY );
         if( $iCalComponent->isXpropSet( $key )) {
-            $dto->setSentBy( $iCalComponent->getXprop( $key)[1] );
+            $dto->setSentBy( $iCalComponent->getXprop( $key )[1] );
         }
+    }
 
-        if( $iCalComponent->isSequenceSet()) {
-            $dto->setSequence( $iCalComponent->getSequence());
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @return array
+     * @throws Exception
+     */
+    private static function extractIcalDtstartTzid(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : array
+    {
+        $startDateTime = $tzid = null;
+        if( ! $iCalComponent->isDtstartSet()) {
+            return [ $startDateTime, $tzid ];
         }
+        $startDateTime = $iCalComponent->getDtstart( true );
+        $dto->setStart( $startDateTime->getValue());
+        if( $startDateTime->hasXparamKey(self::SHOWWITHOUTTIME, $iCalComponent::TRUE )) {
+            $dto->setShowWithoutTime( true );
+        }
+        if( $startDateTime->hasParamKey( $iCalComponent::TZID )) {
+            $tzid = $startDateTime->getParams( $iCalComponent::TZID );
+            $dto->setTimeZone( $tzid );
+        }
+        $startDateTime = clone $startDateTime->getValue();
+        return [ $startDateTime, $tzid ];
+    }
 
-        $tzid = $startDateTime = null;
-        if( $iCalComponent->isDtstartSet()) {
-            $startDateTime = $iCalComponent->getDtstart( true );
-            $dto->setStart( $startDateTime->getValue());
-            if( $startDateTime->hasXparamKey(self::SHOWWITHOUTTIME, $iCalComponent::TRUE )) {
-                $dto->setShowWithoutTime( true );
-            }
-            if( $startDateTime->hasParamKey( $iCalComponent::TZID )) {
-                $tzid = $startDateTime->getParams( $iCalComponent::TZID );
-                $dto->setTimeZone( $tzid );
-            }
-            $startDateTime = clone $startDateTime->getValue();
-        } // end dtstart set
-
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     */
+    private static function extractIcalExcluded(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         $key = self::setXPrefix( self::EXCLUDED );
         if( $iCalComponent->isXpropSet( $key )) {
             $dto->setExcluded( $iCalComponent::TRUE === $iCalComponent->getXprop( $key )[1] );
         }
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @param string|null $tzid
+     * @throws Exception
+     */
+    private static function extractIcalExrule(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+        ? string $tzid
+    ) : void
+    {
         if( $iCalComponent->isExruleSet()) {
             $dto->addExcludedRecurrenceRule(
                 RecurrenceRule::processFromIcalRecur( $iCalComponent->getExrule(),
                     $tzid )
             );
         }
+    }
 
-        // Vlocations, Attendees && Participants
-        $dtoLocations       = []; // lid[location]   may also contain Vlocation(s) from Participants
-        $virtualLocationKey = self::setXPrefix( self::VIRTUALLOCATION ); // also used below
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param string $virtualLocationKey
+     * @return array
+     * @throws Exception
+     */
+    private static function extractIcalVlocationsWithoutKey(
+        IcalVevent|IcalVtodo $iCalComponent,
+        string $virtualLocationKey
+    ) : array
+    {
+        $dtoLocations = []; // lid[location]   may also (later) contain Vlocation(s) from Participants
         foreach( $iCalComponent->getComponents( $iCalComponent::VLOCATION ) as $vlocation ) { // 1. iCal components
             if( $vlocation->isXpropSet( $virtualLocationKey )) {
                 continue; // VirtualLocation found, skip here
             }
-            [ $lid, $dtoLocation ] = Location::processFromIcal( $vlocation );
+            [ $lid, $dtoLocation ] = Location::processFromIcalVlocation( $vlocation );
             if( ! isset( $dtoLocations[$lid] )) { // add location if not found
                 $dtoLocations[$lid] = $dtoLocation;
             }
         } // end foreach
+        return $dtoLocations;
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @return array[]
+     * @throws Exception
+     */
+    private static function extractIcalAttendees( IcalVevent|IcalVtodo $iCalComponent ) : array
+    {
         $attendees   = []; // email[params]
         $idEmailArr  = []; // id[email]
         foreach( $iCalComponent->getAllAttendee( true ) as $attendee ) {
@@ -372,70 +769,88 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 $id  = $attendeeParams[$iCalComponent::X_PARTICIPANTID];
             }
             else {
-                $id  = $dto::getNewUid();
+                $id  = EventDto::getNewUid(); // also for TaskDto
                 $attendeeParams[$iCalComponent::X_PARTICIPANTID] = $id;
             }
             $attendees[$calAddr] = $attendee->getParams();
             $idEmailArr[$id]     = $calAddr;
         } // end foreach
-        foreach( $iCalComponent->getComponents( $iCalComponent::PARTICIPANT ) as $icalParticipant ) {
+        return [ $attendees, $idEmailArr ];
+    }
+
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @param array $attendees
+     * @param array $idEmailArr
+     * @param array $dtoLocations
+     * @throws Exception
+     */
+    private static function extractIcalParticipants(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+        array & $attendees,
+        array & $idEmailArr,
+        array & $dtoLocations
+    ) : void
+    {
+        foreach( $iCalComponent->getComponents( IcalVevent::PARTICIPANT ) as $icalParticipant ) {
             $attendeeParams = [];
-            self::processIcalParticipant(
-                $icalParticipant,
-                $attendees,
-                $attendeeParams,
-                $idEmailArr
-            );
+            self::processIcalParticipant( $icalParticipant,$attendees, $attendeeParams,$idEmailArr );
             [ $id, $participant, $vLocations ] =
                 Participant::processFromIcal( $icalParticipant, $attendeeParams, $idEmailArr );
             foreach( $vLocations as $vlocation ) {
-                [ $lid, $dtoLocation ] = Location::processFromIcal( $vlocation );
+                [ $lid, $dtoLocation ] = Location::processFromIcalVlocation( $vlocation );
                 if( ! isset( $dtoLocations[$lid] )) { // add location if not found
                     $dtoLocations[$lid] = $dtoLocation;
                 }
             } // end if
             $dto->addParticipant( $id, $participant );
         } // end foreach  $participants
-        // any Attendee(s) NOT found as Participant on calAdress)
+    }
+
+    /**
+     * Process any Attendee(s) NOT found as Participant on calAdress
+     *
+     * @param EventDto|TaskDto $dto
+     * @param array $attendees
+     * @param array $idEmailArr
+     * @throws Exception
+     */
+    private static function processAttendeesNotInParticipants(
+        EventDto|TaskDto $dto,
+        array $attendees,
+        array $idEmailArr
+    ) : void
+    {
         foreach( $attendees as $calAddr => $attendeeParams ) {
             $pid            = ParticipantDto::getNewUid();
             $participantDto = ParticipantDto::factory( $calAddr );
             Participant::processFromIcalArray( $attendeeParams, $participantDto, $idEmailArr );
             $dto->addParticipant( $pid, $participantDto );
         }
+    }
 
-        /*
-         * Check locations
-         *
-         * 1: Participant(s) vlocations (from Participants above)
-         * 2: Component Vlocations (properties) locations, NOT VirtualLocations !
-         * 3: iCalComponent::getLocation()
-//       * 4: iCalComponent::getXprop( X-LOCATION skipped
-         */
-
-        $iCalPropLocations = []; // iCal location properties value array
-        if( $iCalComponent->isLocationSet()) {
-            $iCalPropLocations[] = $iCalComponent->getLocation( null, true );  // 2. ical property location
-        } // end if iCal comp location exists
-        /*
-        $locationKey = self::setXPrefix( self::LOCATION ); // 3: ical::getXprop( X-LOCATION   // skip.. .
-        foreach(  $xProps as $xPropName => $contents ) {
-            if( str_starts_with( $xPropName, $locationKey )) {
-                $locations2[] = $contents;
-          }
-        } // end foreach
-        */
+    /**
+     * @param array $iCalPropLocations
+     * @param array $dtoLocations  ( lid => LocationDto )
+     * @throws Exception
+     */
+    private static function processIcalPropLocations(
+        array $iCalPropLocations,
+        array & $dtoLocations
+    ) : void
+    {
         $locationNames = [];
         foreach( $dtoLocations as $dtoLocation ) {
             $locationNames[] = $dtoLocation->getName();
         }
-
         foreach( $iCalPropLocations as $iCalPropLocation ) {
-            if( $iCalPropLocation->hasParamKey( $iCalComponent::X_VLOCATIONID )) {
-                $locationId = $iCalPropLocation->getParams( $iCalComponent::X_VLOCATIONID );
-                if( ! isset( $dtoLocations[$locationId] ) ) {
+            if( $iCalPropLocation->hasParamKey( IcalVevent::X_VLOCATIONID )) {
+                $locationId = $iCalPropLocation->getParams( IcalVevent::X_VLOCATIONID );
+                if( ! isset( $dtoLocations[$locationId] )) {
                     // add location if  'Location id'  not found
-                    [ $lid, $dtoLocation ] = Location::fromIcalLocation( $iCalPropLocation );
+                    [ $lid, $dtoLocation ]  = Location::fromIcalLocation( $iCalPropLocation );
                     if( ! isset( $dtoLocations[$lid] ) ) {
                         $dtoLocations[$lid] = $dtoLocation;
                         $locationNames[]    = $dtoLocation->getName();
@@ -446,21 +861,41 @@ abstract class BaseEventTask extends BaseGroupEventTask
             // compare location name, skip if found
             if( ! in_array( $iCalPropLocation->getValue(), $locationNames, true )) {
                 // not found in locationNames
-                [ $lid, $dtoLocation ] = Location::fromIcalLocation( $iCalPropLocation );
+                [ $lid, $dtoLocation ]  = Location::fromIcalLocation( $iCalPropLocation );
                 if( ! isset( $dtoLocations[$lid] )) {
                     $dtoLocations[$lid] = $dtoLocation;
-                    $locationNames[] = $dtoLocation->getName();
+                    $locationNames[]    = $dtoLocation->getName();
                 }
             }
         } // end foreach $iCalPropLocations
+    }
+
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param array $dtoLocations   ( lid => LocationDto )
+     */
+    private static function addDtoLocations(
+        EventDto|TaskDto $dto,
+        array $dtoLocations
+    ) : void
+    {
         ksort( $dtoLocations ); // sort on Vlocation uid
         foreach( $dtoLocations as $lid => $dtoLocation ) {
             $dto->addLocation( $lid, $dtoLocation );
         }
+    }
 
-        if( $iCalComponent->isRruleSet()) {
-            $dto->addRecurrenceRule( RecurrenceRule::processFromIcalRecur( $iCalComponent->getRrule(), $tzid ));
-        }
+
+        /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractIcalRdates(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         foreach( $iCalComponent->getAllRdate( true ) as $rDate ) {
             if( ! $rDate->hasParamKey( $iCalComponent::VALUE, $iCalComponent::PERIOD )) {
                 $poIcal = PatchObject::singleton();
@@ -472,13 +907,38 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 }
             }
         } // end foreach
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     */
+    private static function extractIcalRelatedtos(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         foreach( $iCalComponent->getAllRelatedto( true ) as $relatedto ) {
             [ $id, $relation ] = Relation::processFromIcalRelatedTo( $relatedto );
             $dto->addRelatedTo( $id, $relation );
         }
+    }
 
-        // check for iCal Vlocations with VirtualLocation
+    /**
+     * Check for iCal Vlocations with VirtualLocationId
+     *
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @param string $virtualLocationKey
+     * @throws Exception
+     */
+    private static function extractIcalVlocationsWithKey(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+        string $virtualLocationKey
+    ) : void
+    {
+        // check for iCal Vlocations with VirtualLocationId
         foreach( $iCalComponent->getComponents( $iCalComponent::VLOCATION ) as $vlocation ) {
             if( ! $vlocation->isXpropSet( $virtualLocationKey )) {
                 continue;
@@ -486,19 +946,56 @@ abstract class BaseEventTask extends BaseGroupEventTask
             [ $id, $virtualLocation ] = VirtualLocation::processFromIcal( $vlocation );
             $dto->addVirtualLocation( $id, $virtualLocation );
         } // end foreach
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     */
+    private static function extractIcalFreeBusyStatus(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         $key = self::setXPrefix( self::FREEBUSYSTATUS );
         if( $iCalComponent->isXpropSet( $key )) {
             $dto->setFreeBusyStatus( $iCalComponent->getXprop( $key)[1] );
         }
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @return bool
+     */
+    private static function extractIcalOrganizer(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : bool
+    {
         $imipFound = false;
         if( $iCalComponent->isOrganizerSet()) {
             $dto->addReplyTo( $dto::IMIP, $iCalComponent->getOrganizer());
             $imipFound = true;
         }
+        return $imipFound;
+    }
 
-        // Localizations and replyTo as iCal xProps
+    /**
+     * Extract Localizations and replyTo from iCal xProps
+     *
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @param bool $imipFound
+     * @throws Exception
+     */
+    private static function extractIcalLocalizationsReplyToXprops(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto,
+        bool $imipFound
+    ) : void
+    {
+        // Localizations and replyTo from iCal xProps
         $localizationsKey = self::setXPrefix( self::LOCALIZATIONS ) . self::$D;
         $replyToKey       = self::setXPrefix( self::REPLYTO . self::$D );
         $poIcal           = PatchObject::singleton();
@@ -516,43 +1013,60 @@ abstract class BaseEventTask extends BaseGroupEventTask
                 }
             }
         } // end foreach
+    }
 
-        // get dto-timezones from dto and locations
-        $dtoTimezones = $dto->getLocationsTimezones();
+    /**
+     * @param EventDto|TaskDto $dto
+     * @param array $iCalVtimezones
+     * @throws Exception
+     */
+    private static function processIcalVtimezones(
+        EventDto|TaskDto $dto,
+        array $iCalVtimezones
+    ) : void
+    {
+        $dtoTimezones = $dto->getLocationsTimezones(); // dto-timezones array from locations and dto
         if( $dto->isTimeZoneSet()) {
             $tzid     = $dto->getTimeZone();
             if( ! in_array( $tzid, $dtoTimezones, true )) {
                 $dtoTimezones[] = $tzid;
             }
         } // end if
-        // accept only dto-timezones
         foreach( $iCalVtimezones as $timeZoneId => $vtimezone ) {
-            if( in_array( $timeZoneId, $dtoTimezones, true )) {
+            if( in_array( $timeZoneId, $dtoTimezones, true )) { // accept only dto-timezones
                 $dto->addTimeZone(
                     (string) $timeZoneId,
                     TimeZone::processFromIcal( $timeZoneId, $vtimezone )
                 );
             }
         } // end foreach
+    }
 
+    /**
+     * @param IcalVevent|IcalVtodo $iCalComponent
+     * @param EventDto|TaskDto $dto
+     * @throws Exception
+     */
+    private static function extractIcalAlarms(
+        IcalVevent|IcalVtodo $iCalComponent,
+        EventDto|TaskDto $dto
+    ) : void
+    {
         $key = self::setXPrefix( self::USEDEFAULTALERTS );
         if( $iCalComponent->isXpropSet( $key )) {
             $dto->setUseDefaultAlerts(( $iCalComponent::TRUE === $iCalComponent->getXprop( $key )[1] ));
         }
-
         foreach( $iCalComponent->getComponents( $iCalComponent::VALARM ) as  $alarm ) {
             [ $uid, $alert ] = Alert::processFromIcal( $alarm );
             $dto->addAlert( $uid, $alert );
         }
-
-        return $startDateTime ?: null;
     }
 
     /**
      * @param IcalComponent|IcalParticipant $icalParticipant
-     * @param array $attendees       [ * calAddr => attendeeParams ];
-     * @param array $attendeeParams  [ * key => value ]
-     * @param array $idEmailArr      [ * id => calAddr ]
+     * @param array $attendees       [ *(calAddr => attendeeParams) ];
+     * @param array $attendeeParams  [ *(key => value) ]
+     * @param array $idEmailArr      [ *(id => calAddr) ]
      * @throws Exception
      */
     protected static function processIcalParticipant(
@@ -562,19 +1076,20 @@ abstract class BaseEventTask extends BaseGroupEventTask
         array & $idEmailArr
     ) : void
     {
-        if( $icalParticipant->isCalendaraddressSet()) {
-            $email = self::removeMailtoPrefix( $icalParticipant->getCalendaraddress());
-            if( self::emailKeyInEmailArr( $email, $attendees )) {
-                $attendeeParams = $attendees[$email];
-                unset( $attendees[$email] ); // found attendee, removed
-            }
-            if( Participant::isEmailFoundInIdEmailArr( $email, $idEmailArr )) {
-                // if email found in idEmailArr, unset
-                $prevKey = array_keys( $idEmailArr, $email, true )[0];
-                unset( $idEmailArr[$prevKey] );
-            }
-            $idEmailArr[$icalParticipant->getUid()] = $email;
-        } // end if isCalendaraddressSet
+        if( ! $icalParticipant->isCalendaraddressSet()) {
+            return;
+        }
+        $email = self::removeMailtoPrefix( $icalParticipant->getCalendaraddress());
+        if( self::emailKeyInEmailArr( $email, $attendees )) {
+            $attendeeParams = $attendees[$email];
+            unset( $attendees[$email] ); // found attendee, removed
+        }
+        if( Participant::isEmailFoundInIdEmailArr( $email, $idEmailArr )) {
+            // if email found in idEmailArr, unset
+            $prevKey = array_keys( $idEmailArr, $email, true )[0];
+            unset( $idEmailArr[$prevKey] );
+        }
+        $idEmailArr[$icalParticipant->getUid()] = $email;
     }
 
     /**

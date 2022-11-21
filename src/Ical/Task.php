@@ -76,7 +76,6 @@ class Task extends BaseEventTask
                 $iCalVtodo->setDue( $taskDto->getDue(), $dueParams );
                 break;
         } // end switch
-
         if( $taskDto->isPercentCompleteSet()) {
             $iCalVtodo->setPercentcomplete( $taskDto->getPercentComplete());
         }
@@ -101,8 +100,7 @@ class Task extends BaseEventTask
                     $taskDto->getProgressUpdated()
                 );
             }
-        }
-
+        } // end if
         return $iCalVtimezones;
     }
 
@@ -123,7 +121,6 @@ class Task extends BaseEventTask
         parent::groupEventTaskProcessFromIcal( $icalVtodo, $taskDto  );
         // $startDateTime =
         parent::eventTaskProcessFromIcal( $icalVtodo, $taskDto, $iCalVtimezones );
-
         if( $icalVtodo->isDueSet()) {
             $due = $icalVtodo->getDue( true );
             $taskDto->setDue( $due->getValue());
@@ -135,15 +132,13 @@ class Task extends BaseEventTask
                 // if due AND duration set, duration is set as a due x-param
                 $taskDto->setEstimatedDuration( $due->getParams( $estDurKey ));
             }
-        }
+        } // end if
         elseif( $icalVtodo->isDurationSet()) {
             $taskDto->setEstimatedDuration( $icalVtodo->getDuration());
         }
-
         if( $icalVtodo->isPercentCompleteSet()) {
             $taskDto->setPercentComplete( $icalVtodo->getPercentComplete());
         }
-
         $statusKey = self::setXPrefix( self::PROGRESS );
         $status = match( true ) {
             $icalVtodo->isStatusSet() => $icalVtodo->getStatus(),

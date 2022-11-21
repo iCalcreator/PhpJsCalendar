@@ -64,24 +64,19 @@ abstract class BaseGroupEventTask extends BaseJson
     protected static function groupEventTaskWrite( GroupDto|EventDto|TaskDto $dto, array & $jsonArray ) : void
     {
         $jsonArray[self::PRODID] = $dto->getProdId();
-
         $jsonArray[self::UID] = $dto->getUid();
-
         if($dto->isCreatedSet()) {
             $jsonArray[self::CREATED] = $dto->getCreated();
         }
-
         if( $dto->isUpdatedSet()) {
             $jsonArray[self::UPDATED] = $dto->getUpdated();
         }
         if( $dto->isTitleSet()) {
             $jsonArray[self::TITLE] = $dto->getTitle();
         }
-
         if( $dto->isLocaleSet()) {
             $jsonArray[self::LOCALE] = $dto->getLocale();
         }
-
         if( $dto->isColorSet()) {
             $jsonArray[self::COLOR] = $dto->getColor();
         }

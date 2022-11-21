@@ -44,10 +44,8 @@ class Task extends BaseEventTask
     public static function parse( array $jsonArray ) : Dto
     {
         $dto = new Dto();
-
         parent::groupEventTaskParse( $jsonArray, $dto );
         parent::eventTaskParse( $jsonArray, $dto );
-
         if( isset( $jsonArray[self::DUE] )) {
             $dto->setDue( $jsonArray[self::DUE] );
         }
@@ -80,15 +78,12 @@ class Task extends BaseEventTask
 
         parent::groupEventTaskWrite( $dto, $jsonArray );
         parent::eventTaskWrite( $dto, $jsonArray );
-
         if( $dto->isDueSet()) {
             $jsonArray[self::DUE] = $dto->getDue();
         }
-
         if( $dto->isEstimatedDurationSet()) {
             $jsonArray[self::ESTIMATEDDURATION] = $dto->getEstimatedDuration();
         }
-
         if( $dto->isProgressSet()) {
             $jsonArray[self::PROGRESS] = $dto->getProgress();
             if( $dto->isProgressUpdatedSet()) {

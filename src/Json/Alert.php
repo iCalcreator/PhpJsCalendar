@@ -70,7 +70,7 @@ class Alert extends BaseJson
                 default :
                     $dto->setTrigger( UnknownTrigger::parse( $jsonArray[self::TRIGGER] ));
                     break;
-            }
+            } // end switch
         }
         return $dto;
     }

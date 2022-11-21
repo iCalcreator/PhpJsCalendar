@@ -50,33 +50,31 @@ class Group extends BaseGroupEventTask
     public static function processToIcal( GroupDto $dto, IcalVcalendar $iCalVcalendar ) : array
     {
         parent::groupEventTaskProcessToIcal( $dto, $iCalVcalendar );
-
-        // array of "(Task|Event)[]"
-        $vtimezones  = [];
-        $isMethodSet = false;
-        if( ! empty( $dto->getEntriesCount())) {
-            foreach( $dto->getEntries() as $entry ) {
-                if( ! $isMethodSet ) { // first found
-                    self::setDtoMethod2Ical( $entry, $iCalVcalendar );
-                    $isMethodSet = true;
-                }
-                if( self::EVENT === $entry->getType()) {
-                    foreach( Event::processToIcal( $entry, $iCalVcalendar->newVevent()) as $timezoneId => $vtimezone ) {
-                        $vtimezones[$timezoneId] = $vtimezone;
-                    }
-                }
-                elseif( self::TASK === $entry->getType() ) {
-                    foreach( Task::processToIcal( $entry, $iCalVcalendar->newVtodo()) as $timezoneId => $vtimezone ) {
-                        $vtimezones[$timezoneId] = $vtimezone;
-                    }
-                }
-            }
-        } // end if
-
         if( $dto->isSourceSet()) {
             $iCalVcalendar->setSource( $dto->getSource());
         }
-
+        if( empty( $dto->getEntriesCount())) {
+            return [];
+        }
+        // array of "(Task|Event)[]"
+        $vtimezones  = [];
+        $isMethodSet = false;
+        foreach( $dto->getEntries() as $entry ) {
+            if( ! $isMethodSet ) { // first found
+                self::setDtoMethod2Ical( $entry, $iCalVcalendar );
+                $isMethodSet = true;
+            }
+            if( self::EVENT === $entry->getType()) {
+                foreach( Event::processToIcal( $entry, $iCalVcalendar->newVevent()) as $timezoneId => $vtimezone ) {
+                    $vtimezones[$timezoneId] = $vtimezone;
+                }
+            }
+            elseif( self::TASK === $entry->getType() ) {
+                foreach( Task::processToIcal( $entry, $iCalVcalendar->newVtodo()) as $timezoneId => $vtimezone ) {
+                    $vtimezones[$timezoneId] = $vtimezone;
+                }
+            }
+        } // end foreach
         return $vtimezones;
     }
 

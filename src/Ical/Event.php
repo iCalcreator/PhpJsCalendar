@@ -49,7 +49,6 @@ class Event extends BaseEventTask
     {
         parent::groupEventTaskProcessToIcal( $eventDto, $iCalVevent );
         [ $iCalVtimezones, $startDateTime ] = parent::eventTaskProcessToIcal( $eventDto, $iCalVevent );
-
         $duration = $eventDto->getDuration( false );
         switch( true) {
             case empty( $duration ) :
@@ -67,11 +66,9 @@ class Event extends BaseEventTask
                 );
                 break;
         } // end switch
-
         if( $eventDto->isStatusSet()) {
             $iCalVevent->setStatus( $eventDto->getStatus());
         }
-
         return $iCalVtimezones;
     }
 
@@ -91,7 +88,6 @@ class Event extends BaseEventTask
         $eventDto = new EventDto();
         parent::groupEventTaskProcessFromIcal( $iCalVevent, $eventDto  );
         $startDateTime = parent::eventTaskProcessFromIcal( $iCalVevent, $eventDto, $iCalVtimezones );
-
         if( $iCalVevent->isDurationSet()) {
             $eventDto->setDuration( $iCalVevent->getDuration());
         }
@@ -99,11 +95,9 @@ class Event extends BaseEventTask
             $dtEnd = $iCalVevent->getDtend();
             $eventDto->setDuration( $startDateTime->diff( $dtEnd->setTimezone( $startDateTime->getTimezone())));
         }
-
         if( $iCalVevent->isStatusSet()) {
             $eventDto->setStatus( strtolower( $iCalVevent->getStatus()));
         }
-
         return $eventDto;
     }
 }
